@@ -1,17 +1,17 @@
 public class HashBucket {
     private final int CAPACITY = 50;
-    private String header; // the initial digits of values stored in this bucket
+    private String prefix; // the initial digits of values stored in this bucket
     HashEntry[] entries;
     int numEntries;
 
-    public HashBucket(String header) {
-        this.header = header;
+    public HashBucket(String prefix) {
+        this.prefix = prefix;
         entries = new HashEntry[CAPACITY];
         numEntries = 0;
     }
 
-    public String getHeader() {
-        return header;
+    public String getPrefix() {
+        return prefix;
     }
 
     public HashEntry[] getEntries() {
