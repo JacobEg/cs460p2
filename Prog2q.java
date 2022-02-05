@@ -35,6 +35,9 @@ public class Prog2q {
         try{
             RandomAccessFile inputRAF = new RandomAccessFile(inputFile, "r");
             RandomAccessFile hashBucketRAF = new RandomAccessFile(hashBucketFile, "r");
+            // do querying
+            inputRAF.close();
+            hashBucketRAF.close();
         } catch(Exception exception){
             exception.printStackTrace();
             Prog2.printErrAndExit("Error accessing " + args[0] + " or HashBucket.bin");
