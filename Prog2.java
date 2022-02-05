@@ -15,8 +15,10 @@
  */
 
 import java.io.File;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class Prog2 {
 	// some constants and class values copied from Jacob Egestad's Program 1
@@ -28,18 +30,23 @@ public class Prog2 {
 	private static int projectSize = -1; // size of projects in bytes
 	private static int bucketSize = -1; // size of bucket in bytes
 	private static int numProjects = -1; // number of projects
+	public static int entrySize = -1;
 
 	public static void main(String[] args){
 		if(args.length == 0) {
 			printErrAndExit("Prog2 <path/to/binary_file>");
 		}
-		File inputFile = new File(args[0]);
+		File inputFile = new File(args[0]); // database file created in Part 1
 		if(!inputFile.isFile()){
 			printErrAndExit("Prog2 <path/to/binary_file>");
 		}
+		File hashBucketFile = new File("HashBucket.bin"); // hash bucket file to be used in RAF
 		try {
-			RandomAccessFile inputRAF = new RandomAccessFile(inputFile, "r");
-			RandomAccessFile hashBucketRAF = new RandomAccessFile("HashBucket.bin", "w");
+			hashBucketFile.delete();
+			hashBucketFile.createNewFile();
+			RandomAccessFile inputRAF = new RandomAccessFile(inputFile, "r"); // RAF for working with DB file
+			RandomAccessFile hashBucketRAF = new RandomAccessFile(hashBucketFile, "rw"); // RAF for working with Hash Bucket file
+			processDatabase(inputRAF, hashBucketRAF);
 			inputRAF.close();
 			hashBucketRAF.close();
 		} catch (Exception e) {
@@ -49,13 +56,58 @@ public class Prog2 {
 	}
 
 	/**
+	 * 
+	 * @param inputRAF
+	 * @param hashBucketRAF
+	 */
+	public static void processDatabase(RandomAccessFile inputRAF, RandomAccessFile hashBucketRAF){
+		try{
+			hashBucketRAF.write(new byte[bucketSize * 10]); // write initial size to HashBucket file
+			long location = 0; //
+			for(int i = 0; i < numProjects; i++){
+				String projectID = readProjectValues(inputRAF, location)[0];
+				// insert into HashBucket here
+				location += projectSize;
+			}
+		} catch (Exception exception){
+			exception.printStackTrace();
+			printErrAndExit("Error with I/O around DB File or Hashbucket File");
+		}
+	}
+
+	/**
+	 * 
+	 * @param inputRAF
+	 * @param location
+	 * @return
+	 * @throws IOException
+	 */
+	public static String[] readProjectValues(RandomAccessFile inputRAF, long location) throws IOException{
+		String[] projectFields = new String[STRING_FIELDS + INT_FIELDS]; // project represented as an arr of strings
+		byte[] project = new byte[projectSize]; // project represented as an array of bytes
+		inputRAF.seek(location);
+		inputRAF.read(project);
+		int i; //index to be used in looping
+		int startIndex = 0;
+		for(i = 0; i < STRING_FIELDS; i++){
+			projectFields[i] = bytesToString(Arrays.copyOfRange(project, startIndex, startIndex + stringFieldLengths[i]));
+			startIndex += stringFieldLengths[i];
+		}
+		for(; i < STRING_FIELDS + INT_FIELDS; i++){
+			projectFields[i] = "" + bytesToInt(Arrays.copyOfRange(project, startIndex, startIndex + Integer.BYTES));
+			startIndex += Integer.BYTES;
+		}
+		return projectFields;
+	}
+
+	/**
 	 * idToKey: Takes a String Project ID and converts it into an integer key. It does this by
 	 * reversing the String and appending the least significant digit of the ASCII value of
 	 * each character in the String.
 	 * Pre-condition: The binary file is being read.
-	 * Post-condition: The 
-	 * @param id
-	 * @return
+	 * Post-condition: N/A
+	 * @param id the Project ID for a project
+	 * @return That project id integerized represented as a string
 	 */
 	public static String idToKey(String id){
 		String key = ""; // key to be converted to an integer for the key
@@ -67,7 +119,7 @@ public class Prog2 {
 	
 	/**
 	 * fillFieldLengths: fills stringFieldLengths array with lengths of each of the string fields of
-	 * the projects in inputRAF, as well as projectSize, bucketSize and numProjects
+	 * the projects in inputRAF, as well as projectSize, bucketSize, entrySize and numProjects
 	 * Pre-conditions: inputRAF is an existing, properly formatted binary file
 	 * Post-conditions: stringFieldLengths, projectSize, numProjects are filled with values
 	 * from end of file inputRAF
@@ -98,7 +150,8 @@ public class Prog2 {
 			//System.out.println("Field " + i + " length: " + stringFieldLengths[i]);
 		}
 		numProjects = (int) (startOfLengths / projectSize);
-		bucketSize = (stringFieldLengths[0] + Long.BYTES) * ENTRIES_PER_BUCKET;
+		entrySize = stringFieldLengths[0] + Long.BYTES;
+		bucketSize = entrySize * ENTRIES_PER_BUCKET;
 	}
 
 	/**
