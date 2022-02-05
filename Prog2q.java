@@ -16,6 +16,7 @@
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.util.Scanner;
 
 public class Prog2q {
 
@@ -35,12 +36,33 @@ public class Prog2q {
         try{
             RandomAccessFile inputRAF = new RandomAccessFile(inputFile, "r");
             RandomAccessFile hashBucketRAF = new RandomAccessFile(hashBucketFile, "r");
-            // do querying
+            queryUser(inputRAF, hashBucketRAF);
             inputRAF.close();
             hashBucketRAF.close();
         } catch(Exception exception){
             exception.printStackTrace();
             Prog2.printErrAndExit("Error accessing " + args[0] + " or HashBucket.bin");
         }
+    }
+
+    /**
+     * 
+     * @param inputRAF
+     * @param hashBucketRAF
+     * @return void
+     */
+    public static void queryUser(RandomAccessFile inputRAF, RandomAccessFile hashBucketRAF){
+        Scanner userInput = new Scanner(System.in);
+        System.out.println("Enter ProjectID to search for:");
+        while(userInput.hasNextLine()){
+            String currInput = userInput.nextLine().strip();
+            if(currInput.equals("-1")){
+                break;
+            }
+            String key = Prog2.idToKey(currInput);
+            // handle key here
+            System.out.println("Enter ProjectID to search for:");
+        }
+        userInput.close();
     }
 }
