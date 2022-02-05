@@ -1,7 +1,3 @@
-import java.io.File;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-
 /**
  * @author Jacob Egestad & Cade Marks
  * File: Prog2.java
@@ -17,6 +13,10 @@ import java.nio.ByteBuffer;
  * 
  * Requirements: Java 16
  */
+
+import java.io.File;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 
 public class Prog2 {
 	// some constants and class values copied from Jacob Egestad's Program 1
