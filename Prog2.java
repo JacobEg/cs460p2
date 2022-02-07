@@ -56,31 +56,42 @@ public class Prog2 {
 	}
 
 	/**
-	 * 
-	 * @param inputRAF
-	 * @param hashBucketRAF
+	 * processDatabase: Reads the projects in the database, adding the project ID to the HashBucket file
+	 * Pre-conditions: inputRAF points to a binary file that is the db file full of projects. fillFieldLengths
+	 * has been called.
+	 * Post-conditions: The HashBucket file has been filled with info from the db file.
+	 * @param inputRAF RandomAccessFile for accessing the db file
+	 * @param hashBucketRAF RandomAccessFile for accessing the hash bucket file
+	 * @return void
 	 */
 	public static void processDatabase(RandomAccessFile inputRAF, RandomAccessFile hashBucketRAF){
+		ExtendibleHashIndex extendibleHashIndex = new ExtendibleHashIndex(hashBucketRAF, inputRAF, bucketSize, "w");
 		try{
 			hashBucketRAF.write(new byte[bucketSize * 10]); // write initial size to HashBucket file
-			long location = 0; //
+			long location = 0; // location (in bytes) of the start of the project
 			for(int i = 0; i < numProjects; i++){
 				String projectID = readProjectValues(inputRAF, location)[0];
-				// insert into HashBucket here
+				String key = idToKey(projectID);
+				extendibleHashIndex.addEntry(projectID, key, location);
 				location += projectSize;
 			}
 		} catch (Exception exception){
 			exception.printStackTrace();
 			printErrAndExit("Error with I/O around DB File or Hashbucket File");
 		}
+		extendibleHashIndex.writeDirectory();
 	}
 
 	/**
-	 * 
-	 * @param inputRAF
-	 * @param location
-	 * @return
-	 * @throws IOException
+	 * readProjectValues: given a database file and a bye location, reads the Project into an array of Strings
+	 * representing the values of the project.
+	 * Pre-conditions: fillFieldLengths has been called. inputRAF is a binary file representing the db file of projects and
+	 * is in read mode
+	 * Post-conditions: file-pointer offset for inputRAF is set to location
+	 * @param inputRAF RandomAccessFile pointing to the db file of projects
+	 * @param location the byte # where the project starts
+	 * @return Array of strings representing the fields in a project
+	 * @throws IOException if inputRAF.seek or .read fails
 	 */
 	public static String[] readProjectValues(RandomAccessFile inputRAF, long location) throws IOException{
 		String[] projectFields = new String[STRING_FIELDS + INT_FIELDS]; // project represented as an arr of strings
