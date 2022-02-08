@@ -104,6 +104,7 @@ public class ExtendibleHashIndex {
      * @return That project id integerized represented as a string
      */
     private String idToKey(String id){
+        id = id.strip();
         String key = ""; // key to be converted to an integer for the key
         for(int i = id.length() - 1; i >= 0; i--){
             key += ((int) id.charAt(i)) % 10;
