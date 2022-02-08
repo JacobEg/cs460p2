@@ -17,13 +17,14 @@
  * Requirements: Java 16
  */
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
 
-public class Directory {
+public class Directory implements Serializable{
     // attributes
     HashMap<String, Long> directory;
     int prefixSize;

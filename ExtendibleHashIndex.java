@@ -1,4 +1,9 @@
 import java.io.RandomAccessFile;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 
 /**
  * @author Jacob Egestad & Cade Marks
@@ -42,28 +47,72 @@ public class ExtendibleHashIndex {
             directory = new Directory();
             initBuckets();
         } else{ // we gotta read the directory from the hash bucket file since we're in read mode
-            directory = readDirectory();
+            readDirectory();
         }
     }
 
     /**
      * writeDirectory write directory to the end of the HashBucket binary file.
-     * Pre-conditons: hashBucketRAF has been filled with all the projects in dbRAF
-     * Post-conditons: the directory is written to the end of the hasbucket binary file
+     * Pre-conditons: hashBucketRAF has been filled with all the projects in dbRAF,
+     * hashBucketRAF is in write mode.
+     * Post-conditons: the directory is written to the end of the hasbucket binary file.
+     * User should be done writing to the hash bucket file
      * @return void
      */
     public void writeDirectory(){
-        throw new NoSuchMethodError(); // TODO: implement
+        try {
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream(); // byte stream for converting directory to byte arr
+            ObjectOutputStream objectStream = new ObjectOutputStream(byteStream); // obj stream for converting directory to byte arr
+            objectStream.writeObject(directory);
+            objectStream.flush();
+            byte[] directoryBytes = byteStream.toByteArray(); // array of bytes representing directory
+            byte[] outputBytes = new byte[directoryBytes.length+Integer.BYTES]; // array of bytes to write to the end of the file
+            byte[] directoryLength = Prog2.intToBytes(directoryBytes.length); // array of bytes representing length of directroy byte array
+            for(int i = 0; i < directoryBytes.length; i++){
+                outputBytes[i] = directoryBytes[i];
+            }
+            for(int i = 0; i < directoryLength.length; i++){
+                outputBytes[i+directoryBytes.length] = directoryLength[i];
+            }
+            hashBucketRAF.seek(hashBucketRAF.length());
+            hashBucketRAF.write(outputBytes);
+            objectStream.close();
+            byteStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Prog2.printErrAndExit("Error writing directory to file.");
+        }
+        
     }
 
     /**
-     * readDirectory: reads directory from bottom of Hash Bucket file
-     * Pre-conditions: User has specified that we're in read mode
+     * readDirectory: reads directory from bottom of Hash Bucket file and sets this.directory to it
+     * Pre-conditions: User has specified that we're in read mode, and hashBucketRAF is in read mode
      * Post-conditions: directory has been read from hashBucketRAF
-     * @return Directory corresponding to what is stored at the bottom of hashBucketRAF
+     * @return void
      */
-    private Directory readDirectory(){
-        return new Directory(); // TODO: implement
+    private void readDirectory(){
+        try {
+            long startOfDirectoryLength = hashBucketRAF.length() - Integer.BYTES; // pos in hashBucketRAF where directory length starts
+            byte[] directoryLengthBytes = new byte[Integer.BYTES]; // byte array representing length of directory in bytes
+            hashBucketRAF.seek(startOfDirectoryLength);
+            hashBucketRAF.read(directoryLengthBytes);
+            int directoryLength = Prog2.bytesToInt(directoryLengthBytes); // length of directory in bytes as an int
+            byte[] directory = new byte[directoryLength]; // directory represented as an array of bytes
+            hashBucketRAF.seek(startOfDirectoryLength - directoryLength);
+            hashBucketRAF.read(directory);
+            ByteArrayInputStream byteStream = new ByteArrayInputStream(directory); // byte stream for converting array of bytes to directory
+            ObjectInputStream objectStream = new ObjectInputStream(byteStream); // object stream for converting array of bytes to directory
+            this.directory = (Directory) objectStream.readObject();
+            objectStream.close();
+            byteStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Prog2.printErrAndExit("Error reading directory from hash bucket file.");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            Prog2.printErrAndExit("Couldn't find class 'directory'");
+        }
     }
 
     /**

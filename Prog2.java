@@ -194,6 +194,17 @@ public class Prog2 {
 	}
 
 	/**
+	 * intToBytes: converts an integer into a length 4 array of bytes
+	 * Pre-condition: N/A
+	 * Post-condition: N/A
+	 * @param integer Integer to be converted to an array of bytes
+	 * @return An array of bytes representing the integer arg
+	 */
+	public static byte[] intToBytes(int integer){
+		return ByteBuffer.allocate(Integer.BYTES).putInt(integer).array();
+	}
+
+	/**
 	 * printErrAndExit: prints provided string to stderr and exits with error code 1
 	 * Pre-conditions: The user has given bad input by not including a valid command line argument
 	 * Post-conditions: This method exits the program
