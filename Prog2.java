@@ -70,7 +70,7 @@ public class Prog2 {
 			hashBucketRAF.write(new byte[bucketSize * 10]); // write initial size to HashBucket file
 			long location = 0; // location (in bytes) of the start of the project
 			for(int i = 0; i < numProjects; i++){
-				String projectID = readProjectValues(inputRAF, location)[0].strip();
+				String projectID = readProjectValues(inputRAF, location)[0];
 				String key = idToKey(projectID);
 				extendibleHashIndex.addEntry(projectID, key, location);
 				location += projectSize;
@@ -192,6 +192,28 @@ public class Prog2 {
 	 */
 	public static int bytesToInt(byte[] bytes){
 		return ByteBuffer.wrap(bytes).getInt();
+	}
+
+	/**
+	 * bytesToLong: convert array of bytes to a long
+	 * Pre-condition: bytes is of length 8
+	 * Post-condition: N/A
+	 * @param bytes the long represented as an array of bytes
+	 * @return the bytes array represented as a long
+	 */
+	public static long bytesToLong(byte[] bytes){
+		return ByteBuffer.wrap(bytes).getLong();
+	}
+
+	/**
+	 * longToBytes: converts a long into a length 8 array of bytes
+	 * Pre-condition: N/A
+	 * Post-condition: N/A
+	 * @param longVal long to be converted to an array of bytes
+	 * @return An array of bytes representing the long arg
+	 */
+	public static byte[] longToBytes(long longVal){
+		return ByteBuffer.allocate(Long.BYTES).putLong(longVal).array();
 	}
 
 	/**

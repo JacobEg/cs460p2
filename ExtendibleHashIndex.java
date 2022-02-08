@@ -1,4 +1,5 @@
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -44,7 +45,7 @@ public class ExtendibleHashIndex {
         this.hashBucketRAF = hashBucketRAF;
         this.dbRAF = dbRAF;
         if(mode.equals("w")){ // we're writing a hash bucket file so it's cool to create a new directory
-            directory = new Directory();
+            directory = new Directory(bucketSize);
             initBuckets();
         } else{ // we gotta read the directory from the hash bucket file since we're in read mode
             readDirectory();
@@ -61,8 +62,8 @@ public class ExtendibleHashIndex {
     public void printIndexInfo(){
         int prefixSize = directory.getPrefixSize();
         System.out.printf("Global depth of directory: %d\n", prefixSize);
-        int totalBuckets = directory.getBuckets();
-        int uniqueBuckets = (int) Math.pow(totalBuckets, 1.0/prefixSize);
+        int uniqueBuckets = directory.getBuckets();
+        int totalBuckets = directory.getTotalBuckets();
         System.out.printf("Number of unique bucket pointers: %d\n", uniqueBuckets);
         System.out.printf("Number of buckets in HashBucket.bin: %d\n", totalBuckets);
         System.out.printf("Average bucket capacity: %f\n", uniqueBuckets / directory.getNumEntries());
@@ -158,7 +159,28 @@ public class ExtendibleHashIndex {
      * @return void
      */
     public void printMatches(String suffix, String key){
-        throw new NoSuchMethodError(); // TODO: implement
+        try{
+            long address = directory.getAddress(key); // will it JUST be this bucket?
+            int numEntries = directory.getNumEntriesInBucketByAddress(address);
+            int entrySize = BUCKET_SIZE / 50;
+            for(int i = 0; i < numEntries; i++){
+                long dbAddr = getAddressFromEntry(address, entrySize);
+                String[] values = Prog2.readProjectValues(dbRAF, dbAddr);
+                System.out.printf("[%s][%s][%s]\n", values[0], values[1], values[9]);
+                address += entrySize;
+            }
+            System.out.printf("%d records found with suffix '%s'", numEntries, suffix);
+        } catch(IOException ioException){
+            ioException.printStackTrace();
+            Prog2.printErrAndExit("Error getting address from entry at in HashBucket File. Or error reading from DB file.");
+        }
+    }
+
+    public long getAddressFromEntry(long address, int entrySize) throws IOException{
+        byte[] entry = new byte[entrySize];
+        hashBucketRAF.seek(address);
+        hashBucketRAF.read(entry);
+        return Prog2.bytesToLong(Arrays.copyOfRange(entry, entrySize - Long.BYTES, entrySize));
     }
 
     /**
@@ -181,7 +203,6 @@ public class ExtendibleHashIndex {
             System.out.println("Error: Bucket not found.");
             System.exit(-1);
         }
-        directory.incrementNumEntries();
         // read appropriate bucket into memory
         HashBucket currBucket; // read from hashbuckets file at bucketAddr
         // add entry to bucket or add buckets if full (also expand directory if necessary)
@@ -224,5 +245,23 @@ public class ExtendibleHashIndex {
             currBucket.insert(newEntry);
             // write bucket back to Hash Buckets file
         }*/
+        directory.incrementNumEntriesAtAddress(bucketAddr);
+        int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr);
+        long insertAddr = bucketAddr + (numEntriesInBucket * BUCKET_SIZE / 50);
+        byte[] writeBytes = new byte[projID.length() + Long.BYTES];
+        for(int i = 0; i < projID.length(); i++){
+            writeBytes[i] = (byte) projID.charAt(i);
+        }
+        byte[] dbAddrBytes = Prog2.longToBytes(dbAddress);
+        for(int i = 0; i < Long.BYTES; i++){
+            writeBytes[i+projID.length()] = dbAddrBytes[i];
+        }
+        try{
+            hashBucketRAF.seek(insertAddr);
+            hashBucketRAF.write(writeBytes);
+        } catch(IOException ioException){
+            ioException.printStackTrace();
+            Prog2.printErrAndExit("Error writing Proj ID " + projID + " to db file.");
+        }
     }
 }

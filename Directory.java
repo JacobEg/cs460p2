@@ -27,14 +27,43 @@ import java.util.Set;
 public class Directory implements Serializable{
     // attributes
     HashMap<String, Long> directory;
+    HashMap<Long, Integer> entries; // keep track of number of entries per bucket
     int prefixSize;
     private int numEntries;
+    final int BUCKET_SIZE;
+    private int totalBuckets;
 
     // constructor
-    public Directory() {
+    public Directory(int bucketSize) {
+        totalBuckets = 10;
         directory = new HashMap<String, Long>();
+        entries = new HashMap<Long, Integer>();
+        long pos = 0; // byte position representing start of each bucket
+        for(int i = 0; i < totalBuckets; i++){
+            entries.put(pos, 0);
+            directory.put("" + i, pos);
+            pos += bucketSize;
+        }
+        BUCKET_SIZE = bucketSize;
         prefixSize = 1;
         numEntries = 0;
+    }
+
+    /**
+     * getTotalBuckets: returns total number of buckets in HashBucket.bin
+     * @return total number of buckets in HashBucket.bin
+     */
+    public int getTotalBuckets(){
+        return totalBuckets;
+    }
+
+    /**
+     * getNumEntriesInBucketByAddress: returns the number of entries in a bucket using address
+     * @param address the address pointing to the start of the bucket
+     * @return number of entries in bucket @ given address
+     */
+    public int getNumEntriesInBucketByAddress(long address){
+        return entries.get(address);
     }
 
     /**
@@ -43,8 +72,10 @@ public class Directory implements Serializable{
      * Post-conditions: numEntries increased by 1
      * @return void
      */
-    public void incrementNumEntries(){
+    public void incrementNumEntriesAtAddress(long address){
         numEntries++;
+        int entriesInBucket = entries.get(address);
+        entries.put(address, entriesInBucket+1);
     }
 
     /**
@@ -58,10 +89,10 @@ public class Directory implements Serializable{
     }
 
     /**
-     * Returns total number of buckets in the HashBucket.bin file
+     * Returns the current number of buckets
      * Pre-conditons: directory has been initialized
      * Post-conditions: N/A
-     * @return the total number of buckets in the HashBucket.binfile
+     * @return the current number of buckets
      */
     public int getBuckets(){
         return directory.size();
@@ -82,7 +113,7 @@ public class Directory implements Serializable{
      */
     public long getAddress(String idKey) {
         for(String key : directory.keySet()) {
-            if (idKey.startsWith(key)) {
+            if (key.length() == prefixSize && idKey.startsWith(key)) {
                 return directory.get(key);
             }
         }
@@ -101,6 +132,7 @@ public class Directory implements Serializable{
      */
     public void addAddress(String prefix, long addr) {
         directory.put(prefix, addr);
+        entries.put(addr, 0);
     }
 
     /**
@@ -114,7 +146,11 @@ public class Directory implements Serializable{
      * @return void
      */
     public void changeAddress(String prefix, long newAddr) {
+        long oldAddr = directory.get(prefix);
         directory.replace(prefix, newAddr);
+        int numEntries = entries.get(oldAddr);
+        entries.remove(oldAddr);
+        entries.put(newAddr, numEntries);
     }
 
     /**
@@ -127,17 +163,21 @@ public class Directory implements Serializable{
      * @return void
      */
     public void grow() {
+        totalBuckets *= 10;
         prefixSize++;
         List<String> prefixes = new ArrayList<String>();
         Set<String> prevKeys = directory.keySet();
         // get all key values then loop 10 times on each adding 0-9 to the end of each for new keys
         HashMap<String, Long> newDirectory = new HashMap<String, Long>();
+        HashMap<Long, Integer> newEntries = new HashMap<Long, Integer>();
         for (String key : prevKeys) {
             for (int i = 0; i < 10; i++) {
+                newEntries.put(directory.get(key), entries.get(directory.get(key))); // this might not work
                 newDirectory.put(key+i, directory.get(key));
             }
         }
         directory = newDirectory;
+        entries = newEntries;
         System.out.println(newDirectory.keySet());
     }
 }
