@@ -79,6 +79,7 @@ public class Prog2 {
 			exception.printStackTrace();
 			printErrAndExit("Error with I/O around DB File or Hashbucket File");
 		}
+		extendibleHashIndex.printIndexInfo();
 		extendibleHashIndex.writeDirectory();
 	}
 

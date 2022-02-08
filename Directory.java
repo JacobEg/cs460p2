@@ -28,11 +28,43 @@ public class Directory implements Serializable{
     // attributes
     HashMap<String, Long> directory;
     int prefixSize;
+    private int numEntries;
 
     // constructor
     public Directory() {
         directory = new HashMap<String, Long>();
         prefixSize = 1;
+        numEntries = 0;
+    }
+
+    /**
+     * incrementNumEntries: adds 1 to numEntries
+     * Pre-conditions: numEntries has been initialized
+     * Post-conditions: numEntries increased by 1
+     * @return void
+     */
+    public void incrementNumEntries(){
+        numEntries++;
+    }
+
+    /**
+     * getNumEntries: returns total number of entries in the index
+     * Pre-condition: numEntries has been initialized
+     * Post-condition: N/A
+     * @return numEntries total number of entries in the Hash Bucket file
+     */
+    public int getNumEntries(){
+        return numEntries;
+    }
+
+    /**
+     * Returns total number of buckets in the HashBucket.bin file
+     * Pre-conditons: directory has been initialized
+     * Post-conditions: N/A
+     * @return the total number of buckets in the HashBucket.binfile
+     */
+    public int getBuckets(){
+        return directory.size();
     }
 
     // getter method for prefixSize

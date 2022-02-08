@@ -52,6 +52,23 @@ public class ExtendibleHashIndex {
     }
 
     /**
+     * printIndexInfo: prints the final global depth of the directory, the number of unique bucket pointer values,
+     * the number of buckets in the hash bucket file, and the avg bucket occupancy
+     * Pre-conditions: The db file is done being read, directory is initialized
+     * Post-conditions: The above info is printed to stdout
+     * @return void
+     */
+    public void printIndexInfo(){
+        int prefixSize = directory.getPrefixSize();
+        System.out.printf("Global depth of directory: %d\n", prefixSize);
+        int totalBuckets = directory.getBuckets();
+        int uniqueBuckets = (int) Math.pow(totalBuckets, 1.0/prefixSize);
+        System.out.printf("Number of unique bucket pointers: %d\n", uniqueBuckets);
+        System.out.printf("Number of buckets in HashBucket.bin: %d\n", totalBuckets);
+        System.out.printf("Average bucket capacity: %f\n", uniqueBuckets / directory.getNumEntries());
+    }
+
+    /**
      * writeDirectory write directory to the end of the HashBucket binary file.
      * Pre-conditons: hashBucketRAF has been filled with all the projects in dbRAF,
      * hashBucketRAF is in write mode.
@@ -164,6 +181,7 @@ public class ExtendibleHashIndex {
             System.out.println("Error: Bucket not found.");
             System.exit(-1);
         }
+        directory.incrementNumEntries();
         // read appropriate bucket into memory
         HashBucket currBucket; // read from hashbuckets file at bucketAddr
         // add entry to bucket or add buckets if full (also expand directory if necessary)
