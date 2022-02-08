@@ -70,7 +70,7 @@ public class Prog2 {
 			hashBucketRAF.write(new byte[bucketSize * 10]); // write initial size to HashBucket file
 			long location = 0; // location (in bytes) of the start of the project
 			for(int i = 0; i < numProjects; i++){
-				String projectID = readProjectValues(inputRAF, location)[0];
+				String projectID = readProjectValues(inputRAF, location)[0].strip();
 				String key = idToKey(projectID);
 				extendibleHashIndex.addEntry(projectID, key, location);
 				location += projectSize;
