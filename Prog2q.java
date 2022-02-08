@@ -74,8 +74,7 @@ public class Prog2q {
             if(currInput.equals("-1")){
                 break;
             }
-            String key = Prog2.idToKey(currInput);
-            extendibleHashIndex.printMatches(currInput, key);
+            extendibleHashIndex.printMatches(currInput);
             System.out.println("Enter ProjectID suffix to search for (-1 to quit):");
         }
         userInput.close();

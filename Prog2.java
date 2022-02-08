@@ -71,8 +71,7 @@ public class Prog2 {
 			long location = 0; // location (in bytes) of the start of the project
 			for(int i = 0; i < numProjects; i++){
 				String projectID = readProjectValues(inputRAF, location)[0];
-				String key = idToKey(projectID);
-				extendibleHashIndex.addEntry(projectID, key, location);
+				extendibleHashIndex.addEntry(projectID, location);
 				location += projectSize;
 			}
 		} catch (Exception exception){
@@ -112,22 +111,7 @@ public class Prog2 {
 		return projectFields;
 	}
 
-	/**
-	 * idToKey: Takes a String Project ID and converts it into an integer key. It does this by
-	 * reversing the String and appending the least significant digit of the ASCII value of
-	 * each character in the String.
-	 * Pre-condition: The binary file is being read.
-	 * Post-condition: N/A
-	 * @param id the Project ID for a project
-	 * @return That project id integerized represented as a string
-	 */
-	public static String idToKey(String id){
-		String key = ""; // key to be converted to an integer for the key
-		for(int i = id.length() - 1; i >= 0; i--){
-			key += ((int) id.charAt(i)) % 10;
-		}
-		return key;
-	}
+
 	
 	/**
 	 * fillFieldLengths: fills stringFieldLengths array with lengths of each of the string fields of

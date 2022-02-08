@@ -155,7 +155,6 @@ public class ExtendibleHashIndex {
      * Pre-conditions: hashBucketRAF is in read mode, as is dbRAF since we are to be using both to handle this query.
      * Post-conditions: All entries with Project ID matching suffix are printed.
      * @param suffix The suffix entered by the user to search for
-     * @param key The suffix generated into a key with Prog2.idToKey
      * @return void
      */
     public void printMatches(String suffix, String key){
@@ -184,6 +183,24 @@ public class ExtendibleHashIndex {
     }
 
     /**
+     * idToKey: Takes a String Project ID and converts it into an integer key. It does this by
+     * reversing the String and appending the least significant digit of the ASCII value of
+     * each character in the String.
+     * Pre-condition: The binary file is being read.
+     * Post-condition: N/A
+     * @param id the Project ID for a project
+     * @return That project id integerized represented as a string
+     */
+    private String idToKey(String id){
+        id = id.strip();
+        String key = ""; // key to be converted to an integer for the key
+        for(int i = id.length() - 1; i >= 0; i--){
+            key += ((int) id.charAt(i)) % 10;
+        }
+        return key;
+    }
+
+    /**
      * addEntry(String projID, String idKey, long dbAddress)
      * Description: Adds a new HashEntry to the appropriate Hash Bucket. If the bucket is full,
      *              first add 10 new buckets to account for an additional digit, growing the
@@ -192,13 +209,12 @@ public class ExtendibleHashIndex {
      * Preconditions: Bucket file has been created.
      * Postconditions: Directory addresses are up to date.
      * @param projID The project ID string for the record
-     * @param idKey The computed hash index integer value (as a String) of the project ID
      * @param dbAddress long address of record in database binary file
      * @return void
      */
-    public void addEntry(String projID, String idKey, long dbAddress) {
+    public void addEntry(String projID, long dbAddress) {
         // find address of bucket from directory
-        long bucketAddr = directory.getAddress(idKey);
+        long bucketAddr = directory.getAddress(idToKey(projID));
         if (bucketAddr == -1) { // bucket not found!
             System.out.println("Error: Bucket not found.");
             System.exit(-1);
@@ -221,7 +237,7 @@ public class ExtendibleHashIndex {
             HashEntry[] entries = currBucket.getEntries();
             for (HashEntry entry : entries) {
                 for (HashBucket bucket : newBuckets) {
-                    if (entry.getIdKey().startsWith(bucket.getPrefix())) {
+                    if (idToKey(entry.getProjID()).startsWith(bucket.getPrefix())) {
                         // add entry to this bucket
                         bucket.insert(entry);
                         break;
@@ -229,9 +245,9 @@ public class ExtendibleHashIndex {
                 }
             }
             // add new entry to new bucket
-            HashEntry newEntry = new HashEntry(projID, dbAddress, idKey);
+            HashEntry newEntry = new HashEntry(projID, dbAddress);
             for (HashBucket bucket : newBuckets) {
-                if (newEntry.getIdKey().startsWith(bucket.getPrefix())) {
+                if (idToKey(newEntry.getProjID()).startsWith(bucket.getPrefix())) {
                     // add entry to this bucket
                     bucket.insert(newEntry);
                     break;
@@ -241,7 +257,7 @@ public class ExtendibleHashIndex {
             // update directory to point at new buckets
 
         } else {
-            HashEntry newEntry = new HashEntry(projID, dbAddress, idKey);
+            HashEntry newEntry = new HashEntry(projID, dbAddress);
             currBucket.insert(newEntry);
             // write bucket back to Hash Buckets file
         }*/
