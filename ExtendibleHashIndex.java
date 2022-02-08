@@ -1,4 +1,10 @@
 import java.io.RandomAccessFile;
+import java.util.Arrays;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 
 /**
  * @author Jacob Egestad & Cade Marks
@@ -39,31 +45,92 @@ public class ExtendibleHashIndex {
         this.hashBucketRAF = hashBucketRAF;
         this.dbRAF = dbRAF;
         if(mode.equals("w")){ // we're writing a hash bucket file so it's cool to create a new directory
-            directory = new Directory();
+            directory = new Directory(bucketSize);
             initBuckets();
         } else{ // we gotta read the directory from the hash bucket file since we're in read mode
-            directory = readDirectory();
+            readDirectory();
         }
     }
 
     /**
-     * writeDirectory write directory to the end of the HashBucket binary file.
-     * Pre-conditons: hashBucketRAF has been filled with all the projects in dbRAF
-     * Post-conditons: the directory is written to the end of the hasbucket binary file
+     * printIndexInfo: prints the final global depth of the directory, the number of unique bucket pointer values,
+     * the number of buckets in the hash bucket file, and the avg bucket occupancy
+     * Pre-conditions: The db file is done being read, directory is initialized
+     * Post-conditions: The above info is printed to stdout
      * @return void
      */
-    public void writeDirectory(){
-        throw new NoSuchMethodError(); // TODO: implement
+    public void printIndexInfo(){
+        int prefixSize = directory.getPrefixSize();
+        System.out.printf("Global depth of directory: %d\n", prefixSize);
+        int uniqueBuckets = directory.getBuckets();
+        int totalBuckets = directory.getTotalBuckets();
+        System.out.printf("Number of unique bucket pointers: %d\n", uniqueBuckets);
+        System.out.printf("Number of buckets in HashBucket.bin: %d\n", totalBuckets);
+        System.out.printf("Average bucket capacity: %f\n", uniqueBuckets / directory.getNumEntries());
     }
 
     /**
-     * readDirectory: reads directory from bottom of Hash Bucket file
-     * Pre-conditions: User has specified that we're in read mode
-     * Post-conditions: directory has been read from hashBucketRAF
-     * @return Directory corresponding to what is stored at the bottom of hashBucketRAF
+     * writeDirectory write directory to the end of the HashBucket binary file.
+     * Pre-conditons: hashBucketRAF has been filled with all the projects in dbRAF,
+     * hashBucketRAF is in write mode.
+     * Post-conditons: the directory is written to the end of the hasbucket binary file.
+     * User should be done writing to the hash bucket file
+     * @return void
      */
-    private Directory readDirectory(){
-        return new Directory(); // TODO: implement
+    public void writeDirectory(){
+        try {
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream(); // byte stream for converting directory to byte arr
+            ObjectOutputStream objectStream = new ObjectOutputStream(byteStream); // obj stream for converting directory to byte arr
+            objectStream.writeObject(directory);
+            objectStream.flush();
+            byte[] directoryBytes = byteStream.toByteArray(); // array of bytes representing directory
+            byte[] outputBytes = new byte[directoryBytes.length+Integer.BYTES]; // array of bytes to write to the end of the file
+            byte[] directoryLength = Prog2.intToBytes(directoryBytes.length); // array of bytes representing length of directroy byte array
+            for(int i = 0; i < directoryBytes.length; i++){
+                outputBytes[i] = directoryBytes[i];
+            }
+            for(int i = 0; i < directoryLength.length; i++){
+                outputBytes[i+directoryBytes.length] = directoryLength[i];
+            }
+            hashBucketRAF.seek(hashBucketRAF.length());
+            hashBucketRAF.write(outputBytes);
+            objectStream.close();
+            byteStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Prog2.printErrAndExit("Error writing directory to file.");
+        }
+        
+    }
+
+    /**
+     * readDirectory: reads directory from bottom of Hash Bucket file and sets this.directory to it
+     * Pre-conditions: User has specified that we're in read mode, and hashBucketRAF is in read mode
+     * Post-conditions: directory has been read from hashBucketRAF
+     * @return void
+     */
+    private void readDirectory(){
+        try {
+            long startOfDirectoryLength = hashBucketRAF.length() - Integer.BYTES; // pos in hashBucketRAF where directory length starts
+            byte[] directoryLengthBytes = new byte[Integer.BYTES]; // byte array representing length of directory in bytes
+            hashBucketRAF.seek(startOfDirectoryLength);
+            hashBucketRAF.read(directoryLengthBytes);
+            int directoryLength = Prog2.bytesToInt(directoryLengthBytes); // length of directory in bytes as an int
+            byte[] directory = new byte[directoryLength]; // directory represented as an array of bytes
+            hashBucketRAF.seek(startOfDirectoryLength - directoryLength);
+            hashBucketRAF.read(directory);
+            ByteArrayInputStream byteStream = new ByteArrayInputStream(directory); // byte stream for converting array of bytes to directory
+            ObjectInputStream objectStream = new ObjectInputStream(byteStream); // object stream for converting array of bytes to directory
+            this.directory = (Directory) objectStream.readObject();
+            objectStream.close();
+            byteStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Prog2.printErrAndExit("Error reading directory from hash bucket file.");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            Prog2.printErrAndExit("Couldn't find class 'directory'");
+        }
     }
 
     /**
@@ -90,8 +157,29 @@ public class ExtendibleHashIndex {
      * @param suffix The suffix entered by the user to search for
      * @return void
      */
-    public void printMatches(String suffix){
-        throw new NoSuchMethodError(); // TODO: implement
+    public void printMatches(String suffix, String key){
+        try{
+            long address = directory.getAddress(key); // will it JUST be this bucket?
+            int numEntries = directory.getNumEntriesInBucketByAddress(address);
+            int entrySize = BUCKET_SIZE / 50;
+            for(int i = 0; i < numEntries; i++){
+                long dbAddr = getAddressFromEntry(address, entrySize);
+                String[] values = Prog2.readProjectValues(dbRAF, dbAddr);
+                System.out.printf("[%s][%s][%s]\n", values[0], values[1], values[9]);
+                address += entrySize;
+            }
+            System.out.printf("%d records found with suffix '%s'", numEntries, suffix);
+        } catch(IOException ioException){
+            ioException.printStackTrace();
+            Prog2.printErrAndExit("Error getting address from entry at in HashBucket File. Or error reading from DB file.");
+        }
+    }
+
+    public long getAddressFromEntry(long address, int entrySize) throws IOException{
+        byte[] entry = new byte[entrySize];
+        hashBucketRAF.seek(address);
+        hashBucketRAF.read(entry);
+        return Prog2.bytesToLong(Arrays.copyOfRange(entry, entrySize - Long.BYTES, entrySize));
     }
 
     /**
@@ -173,5 +261,23 @@ public class ExtendibleHashIndex {
             currBucket.insert(newEntry);
             // write bucket back to Hash Buckets file
         }*/
+        directory.incrementNumEntriesAtAddress(bucketAddr);
+        int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr);
+        long insertAddr = bucketAddr + (numEntriesInBucket * BUCKET_SIZE / 50);
+        byte[] writeBytes = new byte[projID.length() + Long.BYTES];
+        for(int i = 0; i < projID.length(); i++){
+            writeBytes[i] = (byte) projID.charAt(i);
+        }
+        byte[] dbAddrBytes = Prog2.longToBytes(dbAddress);
+        for(int i = 0; i < Long.BYTES; i++){
+            writeBytes[i+projID.length()] = dbAddrBytes[i];
+        }
+        try{
+            hashBucketRAF.seek(insertAddr);
+            hashBucketRAF.write(writeBytes);
+        } catch(IOException ioException){
+            ioException.printStackTrace();
+            Prog2.printErrAndExit("Error writing Proj ID " + projID + " to db file.");
+        }
     }
 }

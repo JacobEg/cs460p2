@@ -78,6 +78,7 @@ public class Prog2 {
 			exception.printStackTrace();
 			printErrAndExit("Error with I/O around DB File or Hashbucket File");
 		}
+		extendibleHashIndex.printIndexInfo();
 		extendibleHashIndex.writeDirectory();
 	}
 
@@ -175,6 +176,39 @@ public class Prog2 {
 	 */
 	public static int bytesToInt(byte[] bytes){
 		return ByteBuffer.wrap(bytes).getInt();
+	}
+
+	/**
+	 * bytesToLong: convert array of bytes to a long
+	 * Pre-condition: bytes is of length 8
+	 * Post-condition: N/A
+	 * @param bytes the long represented as an array of bytes
+	 * @return the bytes array represented as a long
+	 */
+	public static long bytesToLong(byte[] bytes){
+		return ByteBuffer.wrap(bytes).getLong();
+	}
+
+	/**
+	 * longToBytes: converts a long into a length 8 array of bytes
+	 * Pre-condition: N/A
+	 * Post-condition: N/A
+	 * @param longVal long to be converted to an array of bytes
+	 * @return An array of bytes representing the long arg
+	 */
+	public static byte[] longToBytes(long longVal){
+		return ByteBuffer.allocate(Long.BYTES).putLong(longVal).array();
+	}
+
+	/**
+	 * intToBytes: converts an integer into a length 4 array of bytes
+	 * Pre-condition: N/A
+	 * Post-condition: N/A
+	 * @param integer Integer to be converted to an array of bytes
+	 * @return An array of bytes representing the integer arg
+	 */
+	public static byte[] intToBytes(int integer){
+		return ByteBuffer.allocate(Integer.BYTES).putInt(integer).array();
 	}
 
 	/**
