@@ -8,8 +8,8 @@
  * Due Date: February 9, 2022
  *
  * Description: Represents a single record from the database file to be stored in a Hash Bucket.
- *              Contains fields for the project ID of the record, the address of the record in the
- *              database binary file, and the idKey, the index value computed from the projectID.
+ *              Contains fields for the project ID of the record and the address of the record in
+ *              the database binary file.
  *
  * Known deficiencies: N/A
  *
@@ -19,17 +19,15 @@ public class HashEntry {
     // attributes
     String projID;
     long dbAddress;
-    String idKey;
 
     // constructor
-    public HashEntry(String projID, long dbAddress, String idKey) {
+    public HashEntry(String projID, long dbAddress) {
         this.projID = projID;
         this.dbAddress = dbAddress;
-        this.idKey = idKey;
     }
 
-    // getter method for idKey
-    public String getIdKey() {
-        return idKey;
+    // getter method for projID
+    public String getProjID() {
+        return projID;
     }
 }
