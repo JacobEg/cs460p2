@@ -174,7 +174,7 @@ public class Directory implements Serializable{
                     long oldAddr = directory.get(key);
                     directory.replace(key, newAddr);
                     int numEntries = entries.get(oldAddr);
-                    entries.remove(oldAddr);
+                    //entries.remove(oldAddr); // we removed this already, so trying to access it for key 41 is impossible
                     entries.put(newAddr, numEntries);
                 }
             }
