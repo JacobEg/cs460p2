@@ -232,7 +232,23 @@ public class ExtendibleHashIndex {
 
     private HashBucket readBucket(long bucketAddr) {
         // gotta get entries from bucket file somehow
-        HashBucket fileBucket = new HashBucket();
+        HashBucket fileBucket = new HashBucket("junk");
+        int entrySize = BUCKET_SIZE / 50;
+        int startOfAddr = entrySize - Long.BYTES;
+        int numEntries = directory.getNumEntriesInBucketByAddress(bucketAddr);
+        try{
+            for(int i = 0; i < numEntries; i++){
+                byte[] entry = new byte[entrySize];
+                hashBucketRAF.seek(bucketAddr);
+                hashBucketRAF.read(entry);
+                String projID = Prog2.bytesToString(Arrays.copyOfRange(entry, 0, startOfAddr));
+                long projAddr = Prog2.bytesToLong(Arrays.copyOfRange(entry, startOfAddr, entrySize));
+                fileBucket.insert(new HashEntry(projID, projAddr));
+                bucketAddr += entrySize;
+            }
+        } catch(IOException ioException){
+            Prog2.printErrAndExit("Error reading bucket from HashBucket.bin");
+        }
         return fileBucket;
     }
 
