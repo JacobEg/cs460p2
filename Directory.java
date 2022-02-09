@@ -151,11 +151,16 @@ public class Directory implements Serializable{
      * @return void
      */
     public void changeAddress(String prefix, long newAddr) {
-        long oldAddr = directory.get(prefix);
-        directory.replace(prefix, newAddr);
-        int numEntries = entries.get(oldAddr);
-        entries.remove(oldAddr);
-        entries.put(newAddr, numEntries);
+        // might have to change multiple directory pointers beginning with prefix rather than one if directory entry size > prefix length
+        for(String key : directory.keySet()) {
+            if (key.equals(prefix) || key.startsWith(prefix)) {
+                long oldAddr = directory.get(key);
+                directory.replace(key, newAddr);
+                int numEntries = entries.get(oldAddr);
+                entries.remove(oldAddr);
+                entries.put(newAddr, numEntries);
+            }
+        }
     }
 
     /**
