@@ -58,6 +58,20 @@ public class Directory implements Serializable{
     }
 
     /**
+     * getPrefixFromAddress: Given a bucket address, return the corresponding prefix.
+     * @param addreses the address of the bucket to get the prefix from
+     * @return the prefix corresponding to the bucket address, null if not found
+     */
+    public String getPrefixFromAddress(long addreses){
+        for(String prefix: directory.keySet()){
+            if(directory.get(prefix) == addreses){
+                return prefix;
+            }
+        }
+        return null;
+    }
+
+    /**
      * getNumEntriesInBucketByAddress: returns the number of entries in a bucket using address
      * @param address the address pointing to the start of the bucket
      * @return number of entries in bucket @ given address

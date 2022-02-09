@@ -46,6 +46,7 @@ public class Prog2 {
 			hashBucketFile.createNewFile();
 			RandomAccessFile inputRAF = new RandomAccessFile(inputFile, "r"); // RAF for working with DB file
 			RandomAccessFile hashBucketRAF = new RandomAccessFile(hashBucketFile, "rw"); // RAF for working with Hash Bucket file
+			fillFieldLengths(inputRAF);
 			processDatabase(inputRAF, hashBucketRAF);
 			inputRAF.close();
 			hashBucketRAF.close();
