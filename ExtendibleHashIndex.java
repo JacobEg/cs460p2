@@ -25,10 +25,7 @@ import java.io.ObjectInputStream;
  *              need to expand to have longer prefixes if these new prefixes are not already
  *              stored.
  * 
- * Known deficiencies: Does not account for case when bucket needs to be split more than once
- *                     (Ex: Bucket '1' holds '10000','10001','10002',...,'10050', insert '10051')
- *                     Might also need to grow directory more than once in the same case.
- *                     Could this be done recursively?
+ * Known deficiencies:
  * 
  * Requirements: Java 16
  */
@@ -39,6 +36,7 @@ public class ExtendibleHashIndex {
     private final int BUCKET_SIZE; // size of bucket in bytes
     private RandomAccessFile hashBucketRAF; // to be used for writing hashBucket
     private RandomAccessFile dbRAF; // for accessing the db file
+    private long newBucketAddress; // address at end of hash bucket file for new bucket
 
     // constructor
     public ExtendibleHashIndex(RandomAccessFile hashBucketRAF, RandomAccessFile dbRAF, int bucketSize, String mode) {
@@ -51,6 +49,7 @@ public class ExtendibleHashIndex {
         } else{ // we gotta read the directory from the hash bucket file since we're in read mode
             readDirectory();
         }
+        newBucketAddress = BUCKET_SIZE*10;
     }
 
     /**
@@ -268,6 +267,9 @@ public class ExtendibleHashIndex {
             HashBucket[] newBuckets = new HashBucket[10];
             for (int i = 0; i < 10; i++) {
                 newBuckets[i] = new HashBucket(currPrefix+i);
+                // update directory to point at new buckets
+                directory.changeAddress(currPrefix+i, newBucketAddress);
+                newBucketAddress += BUCKET_SIZE;
             }
             // copy entries from old bucket into new buckets
             HashEntry[] entries = currBucket.getEntries();
@@ -281,22 +283,24 @@ public class ExtendibleHashIndex {
                 }
             }
             // add new entry to new bucket
-            addEntry(projID, dbAddress); // recursive call should handle edge case of multiple bucket splits?
-            /*HashEntry newEntry = new HashEntry(projID, dbAddress);
-            for (HashBucket bucket : newBuckets) {
-                if (idToKey(newEntry.getProjID()).startsWith(bucket.getPrefix())) {
-                    // add entry to this bucket
-                    bucket.insert(newEntry);
-                    break;
-                }
-            }*/
+            // recursive call should handle edge case of multiple bucket splits?
+            addEntry(projID, dbAddress);
             // write new buckets to Hash Buckets file
-            // update directory to point at new buckets
+            for (HashBucket bucket : newBuckets) {
+                HashEntry[] bucketEntries = bucket.getEntries();
+                for (int i = 0; i < bucket.getNumEntries(); i++) {
+                    String bucketProjID = bucketEntries[i].getProjID();
+                    long bucketDBAddr = bucketEntries[i].getDbAddress();
+                    long bucketBucketAddr = directory.getAddresses(idToKey(bucketProjID)).get(0);
+                    writeEntry(bucketProjID, bucketDBAddr, bucketBucketAddr);
+                }
+            }
 
         } else {
             HashEntry newEntry = new HashEntry(projID, dbAddress);
             currBucket.insert(newEntry);
             // write bucket back to Hash Buckets file
+            writeEntry(projID, dbAddress, bucketAddr);
         }
     }
 
@@ -310,8 +314,8 @@ public class ExtendibleHashIndex {
      * @return void
      */
     private void writeEntry(String projID, long dbAddr, long bucketAddr){
-        directory.incrementNumEntriesAtAddress(bucketAddr);
         int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr);
+        directory.incrementNumEntriesAtAddress(bucketAddr);
         long insertAddr = bucketAddr + (numEntriesInBucket * BUCKET_SIZE / 50);
         byte[] writeBytes = new byte[projID.length() + Long.BYTES];
         for(int i = 0; i < projID.length(); i++){
