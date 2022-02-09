@@ -166,14 +166,21 @@ public class Directory implements Serializable{
      */
     public void changeAddress(String prefix, long newAddr) {
         // might have to change multiple directory pointers beginning with prefix rather than one if directory entry size > prefix length
-        for(String key : directory.keySet()) {
-            if (key.equals(prefix) || key.startsWith(prefix)) {
-                long oldAddr = directory.get(key);
-                directory.replace(key, newAddr);
-                int numEntries = entries.get(oldAddr);
-                entries.remove(oldAddr);
-                entries.put(newAddr, numEntries);
+        System.out.printf("prefix: %s\noldAddr: %d\nnumEntries: %d\nnewAddr: %d\n", 
+        prefix, directory.get(prefix), entries.get(directory.get(prefix)), newAddr);
+        try{
+            for(String key : directory.keySet()) {
+                if (key.equals(prefix) || key.startsWith(prefix)) {
+                    long oldAddr = directory.get(key);
+                    directory.replace(key, newAddr);
+                    int numEntries = entries.get(oldAddr);
+                    entries.remove(oldAddr);
+                    entries.put(newAddr, numEntries);
+                }
             }
+        } catch(Exception exception){
+            exception.printStackTrace();
+            System.exit(1);
         }
     }
 
@@ -189,19 +196,15 @@ public class Directory implements Serializable{
     public void grow() {
         totalBuckets *= 10;
         prefixSize++;
-        List<String> prefixes = new ArrayList<String>();
         Set<String> prevKeys = directory.keySet();
         // get all key values then loop 10 times on each adding 0-9 to the end of each for new keys
         HashMap<String, Long> newDirectory = new HashMap<String, Long>();
-        HashMap<Long, Integer> newEntries = new HashMap<Long, Integer>();
         for (String key : prevKeys) {
             for (int i = 0; i < 10; i++) {
-                newEntries.put(directory.get(key), entries.get(directory.get(key))); // this might not work
                 newDirectory.put(key+i, directory.get(key));
             }
         }
         directory = newDirectory;
-        entries = newEntries;
         System.out.println(newDirectory.keySet());
     }
 }
