@@ -157,7 +157,8 @@ public class ExtendibleHashIndex {
      * @param suffix The suffix entered by the user to search for
      * @return void
      */
-    public void printMatches(String suffix, String key){
+    public void printMatches(String suffix){
+        String key = idToKey(suffix);
         try{
             long address = directory.getAddress(key); // will it JUST be this bucket?
             int numEntries = directory.getNumEntriesInBucketByAddress(address);
@@ -261,6 +262,18 @@ public class ExtendibleHashIndex {
             currBucket.insert(newEntry);
             // write bucket back to Hash Buckets file
         }*/
+    }
+
+    /**
+     * writeEntry: writes a given Project ID and DB address to the bucket at bucketADDr
+     * Pre-conditions: the bucket at bucketAddr is not full
+     * Post-conditions: The project id and db address is written to the hash bucket file
+     * @param projID String representing the project id of the project to add
+     * @param dbAddr byte location where the project represented by projID can be accessed
+     * @param bucketAddr address of bucket where info will be added
+     * @return void
+     */
+    private void writeEntry(String projID, long dbAddr, long bucketAddr){
         directory.incrementNumEntriesAtAddress(bucketAddr);
         int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr);
         long insertAddr = bucketAddr + (numEntriesInBucket * BUCKET_SIZE / 50);
@@ -268,7 +281,7 @@ public class ExtendibleHashIndex {
         for(int i = 0; i < projID.length(); i++){
             writeBytes[i] = (byte) projID.charAt(i);
         }
-        byte[] dbAddrBytes = Prog2.longToBytes(dbAddress);
+        byte[] dbAddrBytes = Prog2.longToBytes(dbAddr);
         for(int i = 0; i < Long.BYTES; i++){
             writeBytes[i+projID.length()] = dbAddrBytes[i];
         }
