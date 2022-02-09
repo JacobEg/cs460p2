@@ -157,7 +157,7 @@ public class ExtendibleHashIndex {
      * @param bucketPrefix the prefix of the bucket to look for
      * @return the list of directory prefixes corresponding to the inputted bucketPrefix
      */
-    private ArrayList<String> getMatchingDirectoryPrefixes(String bucketPrefix){
+    private ArrayList<String> getMatchingDirectoryPrefixes (String bucketPrefix){
         ArrayList<String> directoryPrefixes = new ArrayList<String>(); // list of prefixes corresponding to bucket prefix
         if(directory.getPrefixSize() == bucketPrefix.length()){
             directoryPrefixes.add(bucketPrefix);
@@ -230,6 +230,12 @@ public class ExtendibleHashIndex {
         return key;
     }
 
+    private HashBucket readBucket(long bucketAddr) {
+        // gotta get entries from bucket file somehow
+        HashBucket fileBucket = new HashBucket();
+        return fileBucket;
+    }
+
     /**
      * addEntry(String projID, String idKey, long dbAddress)
      * Description: Adds a new HashEntry to the appropriate Hash Bucket. If the bucket is full,
@@ -250,9 +256,9 @@ public class ExtendibleHashIndex {
             System.exit(-1);
         }
         // read appropriate bucket into memory
-        HashBucket currBucket; // read from hashbuckets file at bucketAddr
+        HashBucket currBucket = readBucket(bucketAddr); // read from hashbuckets file at bucketAddr
         // add entry to bucket or add buckets if full (also expand directory if necessary)
-        /*if (currBucket.isFull()) {
+        if (currBucket.isFull()) {
             String currPrefix = currBucket.getPrefix();
             // expand directory if necessary
             if (currPrefix.length() == directory.getPrefixSize()) {
@@ -275,14 +281,15 @@ public class ExtendibleHashIndex {
                 }
             }
             // add new entry to new bucket
-            HashEntry newEntry = new HashEntry(projID, dbAddress);
+            addEntry(projID, dbAddress); // recursive call should handle edge case of multiple bucket splits?
+            /*HashEntry newEntry = new HashEntry(projID, dbAddress);
             for (HashBucket bucket : newBuckets) {
                 if (idToKey(newEntry.getProjID()).startsWith(bucket.getPrefix())) {
                     // add entry to this bucket
                     bucket.insert(newEntry);
                     break;
                 }
-            }
+            }*/
             // write new buckets to Hash Buckets file
             // update directory to point at new buckets
 
@@ -290,7 +297,7 @@ public class ExtendibleHashIndex {
             HashEntry newEntry = new HashEntry(projID, dbAddress);
             currBucket.insert(newEntry);
             // write bucket back to Hash Buckets file
-        }*/
+        }
     }
 
     /**
