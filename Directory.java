@@ -104,20 +104,21 @@ public class Directory implements Serializable{
     }
 
     /**
-     * getAddress(String idKey)
-     * Description: Returns the address of the bucket with the prefix matching the idKey
+     * getAddresses(String idKey)
+     * Description: Returns the addresses of the buckets with the prefix matching the idKey
      * Preconditions: Directory was initialized with 10 buckets
      * Postconditions: N/A
      * @param idKey String index key found from entry's projectID
-     * @return long representing address of correct hash bucket, -1 if not found
+     * @return arraylist of longs representing  the buckets matching 
      */
-    public long getAddress(String idKey) {
+    public ArrayList<Long> getAddresses(String idKey) {
+        ArrayList<Long> addresses = new ArrayList<Long>();
         for(String key : directory.keySet()) {
-            if (key.length() == prefixSize && idKey.startsWith(key)) {
-                return directory.get(key);
+            if (idKey.startsWith(key) || key.startsWith(idKey)) {
+                addresses.add(directory.get(key));
             }
         }
-        return -1;
+        return addresses;
     }
 
     /**

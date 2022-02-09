@@ -1,4 +1,5 @@
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -160,16 +161,24 @@ public class ExtendibleHashIndex {
     public void printMatches(String suffix){
         String key = idToKey(suffix);
         try{
-            long address = directory.getAddress(key); // will it JUST be this bucket?
-            int numEntries = directory.getNumEntriesInBucketByAddress(address);
-            int entrySize = BUCKET_SIZE / 50;
-            for(int i = 0; i < numEntries; i++){
-                long dbAddr = getAddressFromEntry(address, entrySize);
-                String[] values = Prog2.readProjectValues(dbRAF, dbAddr);
-                System.out.printf("[%s][%s][%s]\n", values[0], values[1], values[9]);
-                address += entrySize;
+            ArrayList<Long> addresses = directory.getAddresses(key); // will it JUST be this bucket?
+            int matches = 0;
+            for(long address: addresses){
+                int numEntries = directory.getNumEntriesInBucketByAddress(address);
+                int entrySize = BUCKET_SIZE / 50;
+                for(int i = 0; i < numEntries; i++){
+                    long dbAddr = getAddressFromEntry(address, entrySize);
+                    String[] values = Prog2.readProjectValues(dbRAF, dbAddr);
+                    if(!values[0].strip().endsWith(suffix)){ // just making sure
+                        address += entrySize;
+                        continue;
+                    }
+                    matches++;
+                    System.out.printf("[%s][%s][%s]\n", values[0], values[1], values[9]);
+                    address += entrySize;
+                }
             }
-            System.out.printf("%d records found with suffix '%s'", numEntries, suffix);
+            System.out.printf("%d record(s) found with suffix '%s'", matches, suffix);
         } catch(IOException ioException){
             ioException.printStackTrace();
             Prog2.printErrAndExit("Error getting address from entry at in HashBucket File. Or error reading from DB file.");
@@ -215,7 +224,7 @@ public class ExtendibleHashIndex {
      */
     public void addEntry(String projID, long dbAddress) {
         // find address of bucket from directory
-        long bucketAddr = directory.getAddress(idToKey(projID));
+        long bucketAddr = directory.getAddresses(idToKey(projID)).get(0);
         if (bucketAddr == -1) { // bucket not found!
             System.out.println("Error: Bucket not found.");
             System.exit(-1);
