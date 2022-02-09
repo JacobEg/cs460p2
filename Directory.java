@@ -171,11 +171,11 @@ public class Directory implements Serializable{
         try{
             for(String key : directory.keySet()) {
                 if (key.equals(prefix) || key.startsWith(prefix)) {
-                    long oldAddr = directory.get(key);
+                    //long oldAddr = directory.get(key);
                     directory.replace(key, newAddr);
-                    int numEntries = entries.get(oldAddr);
+                    //int numEntries = entries.get(oldAddr);
                     //entries.remove(oldAddr); // we removed this already, so trying to access it for key 41 is impossible
-                    entries.put(newAddr, numEntries);
+                    entries.put(newAddr, 0); // 0 was numEntries
                 }
             }
         } catch(Exception exception){

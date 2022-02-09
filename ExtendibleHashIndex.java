@@ -282,6 +282,13 @@ public class ExtendibleHashIndex {
             }
             // split bucket into 10 new buckets
             HashBucket[] newBuckets = new HashBucket[10];
+            try{
+                hashBucketRAF.seek(hashBucketRAF.length());
+                hashBucketRAF.write(new byte[BUCKET_SIZE*10]);
+            } catch(IOException ioException){
+                ioException.printStackTrace();
+                Prog2.printErrAndExit("Couldn't allocate space to HashBucket.bin");
+            }
             for (int i = 0; i < 10; i++) {
                 newBuckets[i] = new HashBucket(currPrefix+i);
                 // update directory to point at new buckets
@@ -301,7 +308,14 @@ public class ExtendibleHashIndex {
             }
             // add new entry to new bucket
             // recursive call should handle edge case of multiple bucket splits?
-            addEntry(projID, dbAddress);
+            HashEntry newEntry = new HashEntry(projID, dbAddress);
+            for(HashBucket bucket: newBuckets){
+                if(idToKey(newEntry.getProjID()).startsWith(bucket.getPrefix())){
+                    bucket.insert(newEntry);
+                    break;
+                }
+            }
+            //addEntry(projID, dbAddress);
             // write new buckets to Hash Buckets file
             for (HashBucket bucket : newBuckets) {
                 HashEntry[] bucketEntries = bucket.getEntries();
