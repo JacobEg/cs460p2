@@ -231,7 +231,8 @@ public class ExtendibleHashIndex {
 
     private HashBucket readBucket(long bucketAddr) {
         // gotta get entries from bucket file somehow
-        HashBucket fileBucket = new HashBucket("junk");
+        String prefix = directory.getPrefixFromAddress(bucketAddr);
+        HashBucket fileBucket = new HashBucket(prefix);
         int entrySize = BUCKET_SIZE / 50;
         int startOfAddr = entrySize - Long.BYTES;
         int numEntries = directory.getNumEntriesInBucketByAddress(bucketAddr);
