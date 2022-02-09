@@ -152,6 +152,26 @@ public class ExtendibleHashIndex {
     }
 
     /**
+     * getMatchingDirectoryPrefixes: returns the list of directory prefixes corresponding to the 
+     * bucket prefix; that is all the directory prefixes that start with the bucket prefix
+     * @param bucketPrefix the prefix of the bucket to look for
+     * @return the list of directory prefixes corresponding to the inputted bucketPrefix
+     */
+    private ArrayList<String> getMatchingDirectoryPrefixes(String bucketPrefix){
+        ArrayList<String> directoryPrefixes = new ArrayList<String>(); // list of prefixes corresponding to bucket prefix
+        if(directory.getPrefixSize() == bucketPrefix.length()){
+            directoryPrefixes.add(bucketPrefix);
+            return directoryPrefixes;
+        }
+        for(String directoryPrefix: directory.getPrefixes()){ //  iterate over directory prefixes
+            if(directoryPrefix.startsWith(bucketPrefix)){
+                directoryPrefixes.add(directoryPrefix);
+            }
+        }
+        return directoryPrefixes;
+    }
+
+    /**
      * printMatches: prints out all projects that have a suffix matching suffix
      * Pre-conditions: hashBucketRAF is in read mode, as is dbRAF since we are to be using both to handle this query.
      * Post-conditions: All entries with Project ID matching suffix are printed.

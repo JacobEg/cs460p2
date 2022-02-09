@@ -103,6 +103,10 @@ public class Directory implements Serializable{
         return prefixSize;
     }
 
+    public Set<String> getPrefixes(){
+        return directory.keySet();
+    }
+
     /**
      * getAddresses(String idKey)
      * Description: Returns the addresses of the buckets with the prefix matching the idKey
