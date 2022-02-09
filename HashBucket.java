@@ -43,6 +43,9 @@ public class HashBucket {
         return entries;
     }
 
+    public int getNumEntries() {
+        return numEntries;
+    }
 
     /**
      * isFull()

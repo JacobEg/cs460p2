@@ -30,4 +30,8 @@ public class HashEntry {
     public String getProjID() {
         return projID;
     }
+
+    public long getDbAddress() {
+        return dbAddress;
+    }
 }
