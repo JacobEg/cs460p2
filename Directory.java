@@ -219,8 +219,8 @@ public class Directory implements Serializable{
      */
     public void changeAddress(String prefix, long newAddr) {
         // might have to change multiple directory pointers beginning with prefix rather than one if directory entry size > prefix length
-        System.out.printf("prefix: %s\noldAddr: %d\nnumEntries: %d\nnewAddr: %d\n", 
-        prefix, directory.get(prefix), entries.get(directory.get(prefix)), newAddr);
+        //System.out.printf("prefix: %s\noldAddr: %d\nnumEntries: %d\nnewAddr: %d\n", 
+        //prefix, directory.get(prefix), entries.get(directory.get(prefix)), newAddr);
         try{
             for(String key : directory.keySet()) { // iterate over keys
                 if (key.startsWith(prefix)) {

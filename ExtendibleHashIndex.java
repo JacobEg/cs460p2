@@ -169,7 +169,7 @@ public class ExtendibleHashIndex {
         int totalBuckets = directory.getTotalBuckets();
         System.out.printf("Number of unique bucket pointers: %d\n", uniqueBuckets);
         System.out.printf("Number of buckets in HashBucket.bin: %d\n", totalBuckets);
-        System.out.printf("Average bucket capacity: %f\n", uniqueBuckets * 1.0 / directory.getNumEntries());
+        System.out.printf("Average bucket capacity: %f\n", directory.getNumEntries() * 1.0 / uniqueBuckets);
     }
 
     /**
