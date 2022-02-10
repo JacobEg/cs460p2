@@ -58,6 +58,17 @@ public class Directory implements Serializable{
     }
 
     /**
+     * setTotalBuckets: sets totalBuckets instance var to passed-in val
+     * Pre-condition: N/A
+     * Post-condition: totalBuckets is set to arg val
+     * @param totalBuckets the new value of totalBuckets
+     * @return void
+     */
+    public void setTotalBuckets(int totalBuckets){
+        this.totalBuckets = totalBuckets;
+    }
+
+    /**
      * getPrefixFromAddress: Given a bucket address, return the corresponding prefix.
      * @param addreses the address of the bucket to get the prefix from
      * @return the prefix corresponding to the bucket address, null if not found
@@ -194,7 +205,6 @@ public class Directory implements Serializable{
      * @return void
      */
     public void grow() {
-        totalBuckets *= 10;
         prefixSize++;
         Set<String> prevKeys = directory.keySet();
         // get all key values then loop 10 times on each adding 0-9 to the end of each for new keys
