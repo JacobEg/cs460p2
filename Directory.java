@@ -20,6 +20,7 @@
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -51,6 +52,8 @@ public class Directory implements Serializable{
 
     /**
      * getTotalBuckets: returns total number of buckets in HashBucket.bin
+     * Pre-condition: totalBuckets has been initialized
+     * Post-condition: N/A
      * @return total number of buckets in HashBucket.bin
      */
     public int getTotalBuckets(){
@@ -114,13 +117,17 @@ public class Directory implements Serializable{
     }
 
     /**
-     * Returns the current number of buckets
+     * getUniqueBuckets: Returns the current number of unique buckets
      * Pre-conditons: directory has been initialized
      * Post-conditions: N/A
-     * @return the current number of buckets
+     * @return the current number of unique buckets
      */
-    public int getBuckets(){
-        return directory.size();
+    public int getUniqueBuckets(){
+        Set<Long> uniqueBuckets = new HashSet<Long>();
+        for(long address : directory.values()){
+            uniqueBuckets.add(address);
+        }
+        return uniqueBuckets.size();
     }
 
     // getter method for prefixSize
