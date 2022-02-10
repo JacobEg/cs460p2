@@ -25,9 +25,30 @@ import java.io.ObjectInputStream;
  *              need to expand to have longer prefixes if these new prefixes are not already
  *              stored.
  * 
- * Known deficiencies:
+ * Known deficiencies: N/A
  * 
  * Requirements: Java 16
+ * 
+ * Constructor:
+ * ExtendibleHashIndex(RandomAccessFile hashBucketRAF, RandomAccessFile dbRAF, String mode) - uses
+ * RAF for HashBucket file and RAF for db file to construct ExtendibleHashIndex which manages main
+ * functionality for Prog2(q)
+ * Methods:
+ * getProjectSize
+ * getBucketSize
+ * getNumProjects
+ * readProjectValues
+ * fillFieldLengths
+ * printIndexInfo
+ * writeDirectory
+ * readDirectory
+ * initBuckets
+ * printMatches
+ * getAddressFromEntry
+ * idToKey
+ * readBucket
+ * addEntry
+ * writeEntry
  */
 
 public class ExtendibleHashIndex {
@@ -40,14 +61,20 @@ public class ExtendibleHashIndex {
 	private int projectSize = -1; // size of projects in bytes
 	private int bucketSize = -1; // size of bucket in bytes
 	private int numProjects = -1; // number of projects
-	public int entrySize = -1; // the size of each entry
+	private int entrySize = -1; // the size of each entry
     // attributes
     private Directory directory;
     private RandomAccessFile hashBucketRAF; // to be used for writing hashBucket
     private RandomAccessFile dbRAF; // for accessing the db file
     private long newBucketAddress; // address at end of hash bucket file for new bucket
 
-    // constructor
+    /**
+     * Constructs new ExtendibleHashIndex object give the RAFs for the HashBucket file, the db file,
+     * and the mode
+     * @param hashBucketRAF RAF for dealing with index file that has the hash buckets
+     * @param dbRAF RAF for dealing with db file created with Program 1
+     * @param mode "r" for Prog2q and "w" for Prog2
+     */
     public ExtendibleHashIndex(RandomAccessFile hashBucketRAF, RandomAccessFile dbRAF, String mode) {
         this.hashBucketRAF = hashBucketRAF;
         this.dbRAF = dbRAF;
@@ -245,7 +272,6 @@ public class ExtendibleHashIndex {
     private void initBuckets() {
         // create initial 10 buckets and write to file (and add addresses to directory)
         for (int i = 0; i < 10; i++) {
-            HashBucket bucket = new HashBucket(Integer.toString(i)); // new bucket being added to hash bucket file
             // add location to directory (what is the size of a bucket?)
             directory.addAddress(Integer.toString(i), bucketSize * i);
         }
@@ -291,7 +317,7 @@ public class ExtendibleHashIndex {
      * @return The address of the record in the database file
      * @throws IOException
      */
-    public long getAddressFromEntry(long address) throws IOException{
+    private long getAddressFromEntry(long address) throws IOException{
         byte[] entry = new byte[entrySize]; // byte array representing entry in hash buckets file
         hashBucketRAF.seek(address);
         hashBucketRAF.read(entry);
@@ -316,19 +342,26 @@ public class ExtendibleHashIndex {
         return key;
     }
 
+    /**
+     * readBucket: returns the bucket at the given bucket address
+     * Pre-condition: Directory is initialized
+     * Post-condition: N/A
+     * @param bucketAddr address of the start of the bucket
+     * @return HashBucket obj representing bucket at bucketAddr
+     */
     private HashBucket readBucket(long bucketAddr) {
         // gotta get entries from bucket file somehow
-        String prefix = directory.getPrefixFromAddress(bucketAddr);
-        HashBucket fileBucket = new HashBucket(prefix);
-        int startOfAddr = entrySize - Long.BYTES;
-        int numEntries = directory.getNumEntriesInBucketByAddress(bucketAddr);
+        String prefix = directory.getPrefixFromAddress(bucketAddr); // prefix of bucket at bucketAddr
+        HashBucket fileBucket = new HashBucket(prefix); // HashBucket obj to be returned
+        int startOfAddr = entrySize - Long.BYTES; // represents start of byte location that the entry points to
+        int numEntries = directory.getNumEntriesInBucketByAddress(bucketAddr); // current number of entries in the bucket
         try{
             for(int i = 0; i < numEntries; i++){
-                byte[] entry = new byte[entrySize];
+                byte[] entry = new byte[entrySize]; // entry as an array of bytes
                 hashBucketRAF.seek(bucketAddr);
                 hashBucketRAF.read(entry);
-                String projID = Prog2.bytesToString(Arrays.copyOfRange(entry, 0, startOfAddr));
-                long projAddr = Prog2.bytesToLong(Arrays.copyOfRange(entry, startOfAddr, entrySize));
+                String projID = Prog2.bytesToString(Arrays.copyOfRange(entry, 0, startOfAddr)); // project id gotten from entry
+                long projAddr = Prog2.bytesToLong(Arrays.copyOfRange(entry, startOfAddr, entrySize)); // byte location in db file from entry
                 fileBucket.insert(new HashEntry(projID, projAddr));
                 bucketAddr += entrySize;
             }
@@ -429,12 +462,12 @@ public class ExtendibleHashIndex {
     private void writeEntry(String projID, long dbAddr, long bucketAddr){
         int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr); // number of entries in current bucket
         directory.incrementNumEntriesAtAddress(bucketAddr);
-        long insertAddr = bucketAddr + (numEntriesInBucket * bucketSize / ENTRIES_PER_BUCKET);
-        byte[] writeBytes = new byte[projID.length() + Long.BYTES];
-        for(int i = 0; i < projID.length(); i++){
+        long insertAddr = bucketAddr + (numEntriesInBucket * bucketSize / ENTRIES_PER_BUCKET); // address to insert new entry
+        byte[] writeBytes = new byte[projID.length() + Long.BYTES]; // bytes to write at the byte location insertAddr
+        for(int i = 0; i < projID.length(); i++){ // byte-ify the string
             writeBytes[i] = (byte) projID.charAt(i);
         }
-        byte[] dbAddrBytes = Prog2.longToBytes(dbAddr);
+        byte[] dbAddrBytes = Prog2.longToBytes(dbAddr); // convert pointer to db file to array of bytes
         for(int i = 0; i < Long.BYTES; i++){
             writeBytes[i+projID.length()] = dbAddrBytes[i];
         }
