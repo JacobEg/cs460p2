@@ -7,7 +7,11 @@
  * TAs: Haris Riaz, Aayush Pinto
  * Due Date: February 9, 2022
  * 
- * Description: 
+ * Description: Uses the binary db file generated from Jacob Egestad's Program 1 and constructs a file
+ * HashBucket.bin that acts as an index file for that db. Creates an ExtendibleHashIndex obj to manage
+ * the db and index file creation. Calls addEntry on every project id and byte address for every entry to be added to the index.
+ * After the db file is done being processed, calls printIndexInfo to print the info about the index,
+ * and then writes the directory to the end of the file.
  * 
  * Known deficiencies: N/A
  * 
@@ -15,10 +19,8 @@
  */
 
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class Prog2 {
 
@@ -39,8 +41,8 @@ public class Prog2 {
 			processDatabase(inputRAF, hashBucketRAF);
 			inputRAF.close();
 			hashBucketRAF.close();
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (Exception exception) {
+			exception.printStackTrace();
 			printErrAndExit("Can't access " + args[0]);
 		}
 	}
@@ -55,12 +57,13 @@ public class Prog2 {
 	 * @return void
 	 */
 	public static void processDatabase(RandomAccessFile inputRAF, RandomAccessFile hashBucketRAF){
+		// ExtendibleHashIndex object for managing index file
 		ExtendibleHashIndex extendibleHashIndex = new ExtendibleHashIndex(hashBucketRAF, inputRAF, "w");
 		try{
 			hashBucketRAF.write(new byte[extendibleHashIndex.getBucketSize() * 10]); // write initial size to HashBucket file
 			long location = 0; // location (in bytes) of the start of the project
 			for(int i = 0; i < extendibleHashIndex.getNumProjects(); i++){
-				String projectID = extendibleHashIndex.readProjectValues(location)[0];
+				String projectID = extendibleHashIndex.readProjectValues(location)[0]; // project id value
 				extendibleHashIndex.addEntry(projectID, location);
 				location += extendibleHashIndex.getProjectSize();
 			}

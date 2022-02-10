@@ -17,32 +17,60 @@
  * Known deficiencies: N/A
  *
  * Requirements: Java 16
+ * 
+ * Constructor:
+ * HashBucket(String prefix) - takes in prefix representing entries in the hash bucket and initializes entries to CAPACITY amount
+ * Methods:
+ * getPrefix
+ * getEntries
+ * isFull
+ * insert
  */
-
 public class HashBucket {
     // attributes
-    private final int CAPACITY = 50;
+    private final int CAPACITY = 50; // max entries per bucket
     private String prefix; // the initial digits of values stored in this bucket
-    HashEntry[] entries;
-    int numEntries;
+    private HashEntry[] entries; // array of entrues
+    private int numEntries; // curr num entries in bucket
 
-    // constructor
+    /**
+     * Constructs a HashBucket obj, representing a HashBucket in HashBucket.bin
+     * Pre-conditions: HashBucket.bin is being written to
+     * Post-conditions: N/A
+     * @param prefix prefix associated with Bucket ([0-9]+)
+     */
     public HashBucket(String prefix) {
         this.prefix = prefix;
         entries = new HashEntry[CAPACITY];
         numEntries = 0;
     }
 
-    // getter method for prefix
+    /**
+     * getPrefix: returns prefix associated with the bucket
+     * Pre-conditions: prefix is initialized
+     * Post-conditions: N/A
+     * @return prefix associated w/ the bucket
+     */
     public String getPrefix() {
         return prefix;
     }
 
-    // getter method for entries
+    /**
+     * getEntries: returns array of HashEntry objects in this bucket
+     * Pre-conditions: entries is initialized
+     * Post-conditions: N/A
+     * @return entries array
+     */
     public HashEntry[] getEntries() {
         return entries;
     }
 
+    /**
+     * getNumEntries: returns current number of entries in the HashBucket
+     * Pre-conditions: numEntries is initialized
+     * Post-conditions: N/A
+     * @return
+     */
     public int getNumEntries() {
         return numEntries;
     }

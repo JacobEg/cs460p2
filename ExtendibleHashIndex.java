@@ -279,7 +279,7 @@ public class ExtendibleHashIndex {
                     address += entrySize;
                 }
             }
-            System.out.printf("%d record(s) found with suffix '%s'\n", matches, suffix);
+            System.out.printf("%d records match your query\n", matches);
         } catch(IOException ioException){
             ioException.printStackTrace();
             Prog2.printErrAndExit("Error getting address from entry at in HashBucket File. Or error reading from DB file.");
@@ -431,7 +431,7 @@ public class ExtendibleHashIndex {
     private void writeEntry(String projID, long dbAddr, long bucketAddr){
         int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr); // number of entries in current bucket
         directory.incrementNumEntriesAtAddress(bucketAddr);
-        long insertAddr = bucketAddr + (numEntriesInBucket * bucketSize / 50); // address to insert current entry
+        long insertAddr = bucketAddr + (numEntriesInBucket * bucketSize / ENTRIES_PER_BUCKET);
         byte[] writeBytes = new byte[projID.length() + Long.BYTES];
         for(int i = 0; i < projID.length(); i++){
             writeBytes[i] = (byte) projID.charAt(i);
