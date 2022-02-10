@@ -1,3 +1,9 @@
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * @author Jacob Egestad & Cade Marks
  * File: Directory.java
@@ -15,26 +21,38 @@
  * Known deficiencies: N/A
  *
  * Requirements: Java 16
+ * 
+ * Constructors:
+ * Directory(int bucketSize) - takes in a bucket size to be used in initializing directory and entries
+ * directory and entries given 10 initial values
+ * Methods:
+ * getTotalBuckets
+ * setTotalBuckets
+ * getPrefixFromAddress
+ * getNumEntriesInBucketByAddress
+ * incrementNumEntriesAtAddress
+ * getNumEntries
+ * getUniqueBuckets
+ * getPrefixSize
+ * getPrefixes
+ * getAddresses
+ * addAddress
+ * changeAddress
+ * grow
  */
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-
 public class Directory implements Serializable{
     // attributes
-    HashMap<String, Long> directory;
-    HashMap<Long, Integer> entries; // keep track of number of entries per bucket
-    int prefixSize;
-    private int numEntries;
-    final int BUCKET_SIZE;
-    private int totalBuckets;
+    private HashMap<String, Long> directory; // maps directory prefix to address of bucket
+    private HashMap<Long, Integer> entries; // maps address of bucket to num entries in that bucket
+    private int prefixSize; // size of directory prefix
+    private int numEntries; // total number of entries
+    //private final int BUCKET_SIZE;
+    private int totalBuckets; // total number of buckets
 
-    // constructor
+    /**
+     * Constructs new directory obj given a bucketSize
+     * @param bucketSize size of bucket, to be used for setting entries and directory
+     */
     public Directory(int bucketSize) {
         totalBuckets = 10;
         directory = new HashMap<String, Long>();
@@ -45,7 +63,7 @@ public class Directory implements Serializable{
             directory.put("" + i, pos);
             pos += bucketSize;
         }
-        BUCKET_SIZE = bucketSize;
+        //BUCKET_SIZE = bucketSize;
         prefixSize = 1;
         numEntries = 0;
     }
@@ -77,7 +95,7 @@ public class Directory implements Serializable{
      * @return the prefix corresponding to the bucket address, null if not found
      */
     public String getPrefixFromAddress(long addreses){
-        for(String prefix: directory.keySet()){
+        for(String prefix: directory.keySet()){ // iterate over directory prefixes
             if(directory.get(prefix) == addreses){
                 return prefix;
             }
@@ -95,14 +113,16 @@ public class Directory implements Serializable{
     }
 
     /**
-     * incrementNumEntries: adds 1 to numEntries
-     * Pre-conditions: numEntries has been initialized
-     * Post-conditions: numEntries increased by 1
+     * incrementNumEntries: adds 1 to numEntries and one to entries
+     * at address address
+     * Pre-conditions: numEntries and entries have been initialized
+     * Post-conditions: numEntries increased by 1 as well as the value of entries[address]
+     * @param address address of bucket to increment
      * @return void
      */
     public void incrementNumEntriesAtAddress(long address){
         numEntries++;
-        int entriesInBucket = entries.get(address);
+        int entriesInBucket = entries.get(address); // curr number of entries in bucket at address address
         entries.put(address, entriesInBucket+1);
     }
 
@@ -123,18 +143,29 @@ public class Directory implements Serializable{
      * @return the current number of unique buckets
      */
     public int getUniqueBuckets(){
-        Set<Long> uniqueBuckets = new HashSet<Long>();
-        for(long address : directory.values()){
+        Set<Long> uniqueBuckets = new HashSet<Long>(); // set of addresses
+        for(long address : directory.values()){ // iterate over bucket addresses
             uniqueBuckets.add(address);
         }
         return uniqueBuckets.size();
     }
 
-    // getter method for prefixSize
+    /**
+     * getPrefixSize: returns size of directory prefix
+     * Pre-conditions: prefixSize is initialized
+     * Post-conditions: N/A
+     * @return size of directory prefix
+     */
     public int getPrefixSize() {
         return prefixSize;
     }
 
+    /**
+     * getPrefixes: returns set of prefixes in directory
+     * Pre-condition: directory is set
+     * Post-condition: N/A
+     * @return set of prefixes in directory
+     */
     public Set<String> getPrefixes(){
         return directory.keySet();
     }
@@ -148,8 +179,8 @@ public class Directory implements Serializable{
      * @return arraylist of longs representing  the buckets matching 
      */
     public ArrayList<Long> getAddresses(String idKey) {
-        ArrayList<Long> addresses = new ArrayList<Long>();
-        for(String key : directory.keySet()) {
+        ArrayList<Long> addresses = new ArrayList<Long>(); // list of addresses to return
+        for(String key : directory.keySet()) { // iterate over prefixes
             if (idKey.startsWith(key) || key.startsWith(idKey)) {
                 addresses.add(directory.get(key));
             }
@@ -187,8 +218,8 @@ public class Directory implements Serializable{
         System.out.printf("prefix: %s\noldAddr: %d\nnumEntries: %d\nnewAddr: %d\n", 
         prefix, directory.get(prefix), entries.get(directory.get(prefix)), newAddr);
         try{
-            for(String key : directory.keySet()) {
-                if (key.equals(prefix) || key.startsWith(prefix)) {
+            for(String key : directory.keySet()) { // iterate over keys
+                if (key.startsWith(prefix)) {
                     //long oldAddr = directory.get(key);
                     directory.replace(key, newAddr);
                     //int numEntries = entries.get(oldAddr);
@@ -208,14 +239,14 @@ public class Directory implements Serializable{
      *              the end of each old prefix. This is done to accomodate new hash buckets in the
      *              case a bucket is split after reaching capacity.
      * Preconditions: Directory was initialized with 10 buckets
-     * Postconditions: N/A
+     * Postconditions: directory is grown by a factor of 10
      * @return void
      */
     public void grow() {
         prefixSize++;
-        Set<String> prevKeys = directory.keySet();
+        Set<String> prevKeys = directory.keySet(); // previous set of directory prefixes
         // get all key values then loop 10 times on each adding 0-9 to the end of each for new keys
-        HashMap<String, Long> newDirectory = new HashMap<String, Long>();
+        HashMap<String, Long> newDirectory = new HashMap<String, Long>(); // new directory to set directory to
         for (String key : prevKeys) {
             for (int i = 0; i < 10; i++) {
                 newDirectory.put(key+i, directory.get(key));

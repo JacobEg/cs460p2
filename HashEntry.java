@@ -17,20 +17,35 @@
  */
 public class HashEntry {
     // attributes
-    String projID;
-    long dbAddress;
+    private String projID; // project id of the project this entry represents
+    private long dbAddress; // byte position in db file this entry represents
 
-    // constructor
+    /**
+     * Constructs new HashEntry obj representing entry in HashBucket.bin
+     * @param projID Project ID associated with the entry
+     * @param dbAddress entry in db created in Prog1 associated with the entry
+     */
     public HashEntry(String projID, long dbAddress) {
         this.projID = projID;
         this.dbAddress = dbAddress;
     }
 
-    // getter method for projID
+    /**
+     * getProjID: returns project id of project this entry points to
+     * Pre-conditon: projID is initialized
+     * Post-condition: N/A
+     * @return project id associated with this entry
+     */
     public String getProjID() {
         return projID;
     }
 
+    /**
+     * getDbAddress: returns project id of project this entry points to
+     * Pre-conditon: dbAddress is initialized
+     * Post-condition: N/A
+     * @return byte location in db file associated with this entry
+     */
     public long getDbAddress() {
         return dbAddress;
     }
