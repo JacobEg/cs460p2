@@ -409,14 +409,14 @@ public class ExtendibleHashIndex {
             }
             // add new entry to new bucket
             // recursive call should handle edge case of multiple bucket splits?
-            HashEntry newEntry = new HashEntry(projID, dbAddress);
+            /*HashEntry newEntry = new HashEntry(projID, dbAddress);
             for(HashBucket bucket: newBuckets){
                 if(idToKey(newEntry.getProjID()).startsWith(bucket.getPrefix())){
                     bucket.insert(newEntry);
                     break;
                 }
-            }
-            //addEntry(projID, dbAddress);
+            }*/
+            addEntry(projID, dbAddress);
             // write new buckets to Hash Buckets file
             for (HashBucket bucket : newBuckets) {
                 HashEntry[] bucketEntries = bucket.getEntries();
