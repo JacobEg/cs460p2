@@ -207,12 +207,13 @@ public class Directory implements Serializable{
     }
 
     /**
-     * grow()
+     * grow(String currPrefix)
      * Description: Grow directory by a factor of 10, making new prefixes by adding digits 0-9 to
      *              the end of each old prefix. This is done to accomodate new hash buckets in the
      *              case a bucket is split after reaching capacity.
      * Preconditions: Directory was initialized with 10 buckets
      * Postconditions: N/A
+     * @param currPrefix The prefix of the hash bucket being split
      * @return void
      */
     public void grow(String currPrefix) {
@@ -234,6 +235,15 @@ public class Directory implements Serializable{
         //System.out.println(newDirectory.keySet());
     }
 
+    /**
+     * grow()
+     * Description: Change the keyMap so each directory key's value is now the updated Hash Bucket
+     *              prefix for the bucket being split.
+     * Preconditions: Directory was initialized with 10 buckets
+     * Postconditions: N/A
+     * @param currPrefix The prefix of the hash bucket being split
+     * @return void
+     */
     public void updateKeyMap(String currPrefix) {
         Set<String> keys = directory.keySet();
         for (String key : keys) {
