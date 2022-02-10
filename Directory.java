@@ -44,6 +44,7 @@ public class Directory implements Serializable{
     // attributes
     private HashMap<String, Long> directory; // maps directory prefix to address of bucket
     private HashMap<Long, Integer> entries; // maps address of bucket to num entries in that bucket
+    private HashMap<String, String> keyMap; // key is directory prefix, val is hashbucket prefix
     private int prefixSize; // size of directory prefix
     private int numEntries; // total number of entries
     //private final int BUCKET_SIZE;
@@ -57,10 +58,12 @@ public class Directory implements Serializable{
         totalBuckets = 10;
         directory = new HashMap<String, Long>();
         entries = new HashMap<Long, Integer>();
+        keyMap = new HashMap<String, String>();
         long pos = 0; // byte position representing start of each bucket
         for(int i = 0; i < totalBuckets; i++){
             entries.put(pos, 0);
             directory.put("" + i, pos);
+            keyMap.put("" + i, "" + i);
             pos += bucketSize;
         }
         //BUCKET_SIZE = bucketSize;
@@ -91,13 +94,13 @@ public class Directory implements Serializable{
 
     /**
      * getPrefixFromAddress: Given a bucket address, return the corresponding prefix.
-     * @param addreses the address of the bucket to get the prefix from
+     * @param address the address of the bucket to get the prefix from
      * @return the prefix corresponding to the bucket address, null if not found
      */
-    public String getPrefixFromAddress(long addreses){
-        for(String prefix: directory.keySet()){ // iterate over directory prefixes
-            if(directory.get(prefix) == addreses){
-                return prefix;
+     public String getPrefixFromAddress(long address){
+        for(String prefix: directory.keySet()){
+            if(directory.get(prefix) == address){
+                return keyMap.get(prefix);
             }
         }
         return null;
@@ -200,6 +203,7 @@ public class Directory implements Serializable{
      */
     public void addAddress(String prefix, long addr) {
         directory.put(prefix, addr);
+        keyMap.put(prefix, prefix); // is this correct?
         entries.put(addr, 0);
     }
 
@@ -234,25 +238,51 @@ public class Directory implements Serializable{
     }
 
     /**
-     * grow()
+     * grow(String currPrefix)
      * Description: Grow directory by a factor of 10, making new prefixes by adding digits 0-9 to
      *              the end of each old prefix. This is done to accomodate new hash buckets in the
      *              case a bucket is split after reaching capacity.
      * Preconditions: Directory was initialized with 10 buckets
      * Postconditions: directory is grown by a factor of 10
+     * @param currPrefix The prefix of the hash bucket being split
      * @return void
      */
-    public void grow() {
+    public void grow(String currPrefix) {
         prefixSize++;
         Set<String> prevKeys = directory.keySet(); // previous set of directory prefixes
         // get all key values then loop 10 times on each adding 0-9 to the end of each for new keys
         HashMap<String, Long> newDirectory = new HashMap<String, Long>(); // new directory to set directory to
         for (String key : prevKeys) {
             for (int i = 0; i < 10; i++) {
+                if (key.equals(currPrefix)) {
+                    keyMap.put(key+i, key+i);
+                } else {
+                    keyMap.put(key+i, key);                }
                 newDirectory.put(key+i, directory.get(key));
             }
+            keyMap.remove(key);
         }
         directory = newDirectory;
         //System.out.println(newDirectory.keySet());
+    }
+
+    /**
+     * grow()
+     * Description: Change the keyMap so each directory key's value is now the updated Hash Bucket
+     *              prefix for the bucket being split.
+     * Preconditions: Directory was initialized with 10 buckets
+     * Postconditions: N/A
+     * @param currPrefix The prefix of the hash bucket being split
+     * @return void
+     */
+    public void updateKeyMap(String currPrefix) {
+        Set<String> keys = directory.keySet();
+        for (String key : keys) {
+            for (int i = 0; i < 10; i++) {
+                if (key.equals(currPrefix+i)) {
+                    keyMap.replace(key, keyMap.get(key)+i);
+                }
+            }
+        }
     }
 }
