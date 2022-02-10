@@ -134,7 +134,7 @@ public class ExtendibleHashIndex {
 		dbRAF.seek(location);
 		dbRAF.read(project);
 		int i; // index to be used in looping
-		int startIndex = 0; //
+		int startIndex = 0; // starting index of string field
 		for(i = 0; i < STRING_FIELDS; i++){
 			projectFields[i] = Prog2.bytesToString(Arrays.copyOfRange(project, startIndex, startIndex + stringFieldLengths[i]));
 			startIndex += stringFieldLengths[i];
@@ -175,7 +175,6 @@ public class ExtendibleHashIndex {
 			}
 			stringFieldLengths[i] = Prog2.bytesToInt(toInt);
 			projectSize += stringFieldLengths[i];
-			//System.out.println("Field " + i + " length: " + stringFieldLengths[i]);
 		}
 		numProjects = (int) (startOfLengths / projectSize);
 		entrySize = stringFieldLengths[0] + Long.BYTES;
@@ -190,10 +189,10 @@ public class ExtendibleHashIndex {
      * @return void
      */
     public void printIndexInfo(){
-        int prefixSize = directory.getPrefixSize();
+        int prefixSize = directory.getPrefixSize(); // the number of digits in the directory prefixes
         System.out.printf("Global depth of directory: %d\n", prefixSize);
-        int uniqueBuckets = directory.getUniqueBuckets();
-        int totalBuckets = directory.getTotalBuckets();
+        int uniqueBuckets = directory.getUniqueBuckets(); // the number of unique buckets pointer values
+        int totalBuckets = directory.getTotalBuckets(); // the total number of buckets in the hash bucket file
         System.out.printf("Number of unique bucket pointers: %d\n", uniqueBuckets);
         System.out.printf("Number of buckets in HashBucket.bin: %d\n", totalBuckets);
         System.out.printf("Average bucket capacity: %f\n", directory.getNumEntries() * 1.0 / uniqueBuckets);
@@ -286,15 +285,15 @@ public class ExtendibleHashIndex {
      * @return void
      */
     public void printMatches(String suffix){
-        String key = idToKey(suffix);
+        String key = idToKey(suffix); // key generated from the suffix
         try{
-            ArrayList<Long> addresses = directory.getAddresses(key); // will it JUST be this bucket?
-            int matches = 0;
+            ArrayList<Long> addresses = directory.getAddresses(key); // addresses beginning with the key
+            int matches = 0; // number of matches found
             for(long address: addresses){
-                int numEntries = directory.getNumEntriesInBucketByAddress(address);
-                for(int i = 0; i < numEntries; i++){
-                    long dbAddr = getAddressFromEntry(address);
-                    String[] values = readProjectValues(dbAddr);
+                int numEntries = directory.getNumEntriesInBucketByAddress(address); // number of entries in the bucket at current address
+                for (int i = 0; i < numEntries; i++) {
+                    long dbAddr = getAddressFromEntry(address); // address of record in db file stored by entry
+                    String[] values = readProjectValues(dbAddr); // values of record in db file
                     if(!values[0].strip().endsWith(suffix)){ // just making sure
                         address += entrySize;
                         continue;
@@ -319,7 +318,7 @@ public class ExtendibleHashIndex {
      * @throws IOException
      */
     private long getAddressFromEntry(long address) throws IOException{
-        byte[] entry = new byte[entrySize];
+        byte[] entry = new byte[entrySize]; // byte array representing entry in hash buckets file
         hashBucketRAF.seek(address);
         hashBucketRAF.read(entry);
         return Prog2.bytesToLong(Arrays.copyOfRange(entry, entrySize - Long.BYTES, entrySize));
