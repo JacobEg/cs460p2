@@ -40,7 +40,7 @@ public class ExtendibleHashIndex {
 	private int projectSize = -1; // size of projects in bytes
 	private int bucketSize = -1; // size of bucket in bytes
 	private int numProjects = -1; // number of projects
-	public int entrySize = -1;
+	public int entrySize = -1; // the size of each entry
     // attributes
     private Directory directory;
     private RandomAccessFile hashBucketRAF; // to be used for writing hashBucket
@@ -106,8 +106,8 @@ public class ExtendibleHashIndex {
 		byte[] project = new byte[projectSize]; // project represented as an array of bytes
 		dbRAF.seek(location);
 		dbRAF.read(project);
-		int i; //index to be used in looping
-		int startIndex = 0;
+		int i; // index to be used in looping
+		int startIndex = 0; //
 		for(i = 0; i < STRING_FIELDS; i++){
 			projectFields[i] = Prog2.bytesToString(Arrays.copyOfRange(project, startIndex, startIndex + stringFieldLengths[i]));
 			startIndex += stringFieldLengths[i];
@@ -254,26 +254,6 @@ public class ExtendibleHashIndex {
     }
 
     /**
-     * getMatchingDirectoryPrefixes: returns the list of directory prefixes corresponding to the 
-     * bucket prefix; that is all the directory prefixes that start with the bucket prefix
-     * @param bucketPrefix the prefix of the bucket to look for
-     * @return the list of directory prefixes corresponding to the inputted bucketPrefix
-     */
-    private ArrayList<String> getMatchingDirectoryPrefixes (String bucketPrefix){
-        ArrayList<String> directoryPrefixes = new ArrayList<String>(); // list of prefixes corresponding to bucket prefix
-        if(directory.getPrefixSize() == bucketPrefix.length()){
-            directoryPrefixes.add(bucketPrefix);
-            return directoryPrefixes;
-        }
-        for(String directoryPrefix: directory.getPrefixes()){ //  iterate over directory prefixes
-            if(directoryPrefix.startsWith(bucketPrefix)){
-                directoryPrefixes.add(directoryPrefix);
-            }
-        }
-        return directoryPrefixes;
-    }
-
-    /**
      * printMatches: prints out all projects that have a suffix matching suffix
      * Pre-conditions: hashBucketRAF is in read mode, as is dbRAF since we are to be using both to handle this query.
      * Post-conditions: All entries with Project ID matching suffix are printed.
@@ -306,6 +286,13 @@ public class ExtendibleHashIndex {
         }
     }
 
+    /**
+     * getAddressFromEntry(long address): Takes the address of an entry in the Hash Bucket file
+     * and returns the address of the record stored in that entry from the database binary file.
+     * @param address The address of the entry in the Hash Bucket file
+     * @return The address of the record in the database file
+     * @throws IOException
+     */
     public long getAddressFromEntry(long address) throws IOException{
         byte[] entry = new byte[entrySize];
         hashBucketRAF.seek(address);
@@ -367,18 +354,17 @@ public class ExtendibleHashIndex {
      */
     public void addEntry(String projID, long dbAddress) {
         // find address of bucket from directory
-        long bucketAddr = directory.getAddresses(idToKey(projID)).get(0);
+        long bucketAddr = directory.getAddresses(idToKey(projID)).get(0); // address of bucket in hash bucket file
         if (bucketAddr == -1) { // bucket not found!
             System.out.println("Error: Bucket not found.");
             System.exit(-1);
         }
         // read appropriate bucket into memory
-        HashBucket currBucket = readBucket(bucketAddr); // read from hashbuckets file at bucketAddr
-        System.out.printf(" currBucket prefix: %s, numEntries: %d\n", currBucket.getPrefix(), currBucket.getNumEntries());
+        HashBucket currBucket = readBucket(bucketAddr); // bucket read from hashbuckets file at bucketAddr
         // add entry to bucket or add buckets if full (also expand directory if necessary)
         if (currBucket.isFull()) {
             directory.setTotalBuckets(directory.getTotalBuckets() + 10);
-            String currPrefix = currBucket.getPrefix();
+            String currPrefix = currBucket.getPrefix(); // prefix of currBucket
             // expand directory if necessary
             if (currPrefix.length() == directory.getPrefixSize()) {
                 directory.grow(currPrefix);
@@ -386,7 +372,7 @@ public class ExtendibleHashIndex {
                 directory.updateKeyMap(currPrefix);
             }
             // split bucket into 10 new buckets
-            HashBucket[] newBuckets = new HashBucket[10];
+            HashBucket[] newBuckets = new HashBucket[10]; // array of new buckets being added
             try{
                 hashBucketRAF.seek(hashBucketRAF.length());
                 hashBucketRAF.write(new byte[bucketSize*10]);
@@ -401,7 +387,7 @@ public class ExtendibleHashIndex {
                 newBucketAddress += bucketSize;
             }
             // copy entries from old bucket into new buckets
-            HashEntry[] entries = currBucket.getEntries();
+            HashEntry[] entries = currBucket.getEntries(); // entries from currBucket, before split
             for (HashEntry entry : entries) {
                 for (HashBucket bucket : newBuckets) {
                     if (idToKey(entry.getProjID()).startsWith(bucket.getPrefix())) {
@@ -413,27 +399,20 @@ public class ExtendibleHashIndex {
             }
             // add new entry to new bucket
             // recursive call should handle edge case of multiple bucket splits?
-            /*HashEntry newEntry = new HashEntry(projID, dbAddress);
-            for(HashBucket bucket: newBuckets){
-                if(idToKey(newEntry.getProjID()).startsWith(bucket.getPrefix())){
-                    bucket.insert(newEntry);
-                    break;
-                }
-            }*/
             addEntry(projID, dbAddress);
             // write new buckets to Hash Buckets file
             for (HashBucket bucket : newBuckets) {
-                HashEntry[] bucketEntries = bucket.getEntries();
+                HashEntry[] bucketEntries = bucket.getEntries(); // entries from new bucket to write to file
                 for (int i = 0; i < bucket.getNumEntries(); i++) {
-                    String bucketProjID = bucketEntries[i].getProjID();
-                    long bucketDBAddr = bucketEntries[i].getDbAddress();
-                    long bucketBucketAddr = directory.getAddresses(idToKey(bucketProjID)).get(0);
+                    String bucketProjID = bucketEntries[i].getProjID(); // project ID of writing entry
+                    long bucketDBAddr = bucketEntries[i].getDbAddress(); // DB address of writing entry
+                    long bucketBucketAddr = directory.getAddresses(idToKey(bucketProjID)).get(0); // bucket file address of writing entry
                     writeEntry(bucketProjID, bucketDBAddr, bucketBucketAddr);
                 }
             }
 
         } else {
-            HashEntry newEntry = new HashEntry(projID, dbAddress);
+            HashEntry newEntry = new HashEntry(projID, dbAddress); // new entry added to bucket file
             currBucket.insert(newEntry);
             // write bucket back to Hash Buckets file
             writeEntry(projID, dbAddress, bucketAddr);
@@ -450,9 +429,9 @@ public class ExtendibleHashIndex {
      * @return void
      */
     private void writeEntry(String projID, long dbAddr, long bucketAddr){
-        int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr);
+        int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr); // number of entries in current bucket
         directory.incrementNumEntriesAtAddress(bucketAddr);
-        long insertAddr = bucketAddr + (numEntriesInBucket * bucketSize / 50);
+        long insertAddr = bucketAddr + (numEntriesInBucket * bucketSize / 50); // address to insert current entry
         byte[] writeBytes = new byte[projID.length() + Long.BYTES];
         for(int i = 0; i < projID.length(); i++){
             writeBytes[i] = (byte) projID.charAt(i);
