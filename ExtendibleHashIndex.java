@@ -376,6 +376,7 @@ public class ExtendibleHashIndex {
         HashBucket currBucket = readBucket(bucketAddr); // read from hashbuckets file at bucketAddr
         // add entry to bucket or add buckets if full (also expand directory if necessary)
         if (currBucket.isFull()) {
+            directory.setTotalBuckets(directory.getTotalBuckets() + 10);
             String currPrefix = currBucket.getPrefix();
             // expand directory if necessary
             if (currPrefix.length() == directory.getPrefixSize()) {
