@@ -165,7 +165,7 @@ public class ExtendibleHashIndex {
     public void printIndexInfo(){
         int prefixSize = directory.getPrefixSize();
         System.out.printf("Global depth of directory: %d\n", prefixSize);
-        int uniqueBuckets = directory.getBuckets();
+        int uniqueBuckets = directory.getUniqueBuckets();
         int totalBuckets = directory.getTotalBuckets();
         System.out.printf("Number of unique bucket pointers: %d\n", uniqueBuckets);
         System.out.printf("Number of buckets in HashBucket.bin: %d\n", totalBuckets);
