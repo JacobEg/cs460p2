@@ -31,26 +31,129 @@ import java.io.ObjectInputStream;
  */
 
 public class ExtendibleHashIndex {
+    // some constants and class values copied from Jacob Egestad's Program 1
+	private static final int STRING_FIELDS = 9; // number of string fields
+	private static final int INT_FIELDS = 4; // number of int fields
+	private static final int INT_FIELDS_LENGTHS = INT_FIELDS * Integer.BYTES; // length of int fields
+	private static final int ENTRIES_PER_BUCKET = 50; // number of entries per bucket
+	private int[] stringFieldLengths = new int[STRING_FIELDS]; // lengths of the string fields
+	private int projectSize = -1; // size of projects in bytes
+	private int bucketSize = -1; // size of bucket in bytes
+	private int numProjects = -1; // number of projects
+	public int entrySize = -1;
     // attributes
     private Directory directory;
-    private final int BUCKET_SIZE; // size of bucket in bytes
     private RandomAccessFile hashBucketRAF; // to be used for writing hashBucket
     private RandomAccessFile dbRAF; // for accessing the db file
     private long newBucketAddress; // address at end of hash bucket file for new bucket
 
     // constructor
-    public ExtendibleHashIndex(RandomAccessFile hashBucketRAF, RandomAccessFile dbRAF, int bucketSize, String mode) {
-        BUCKET_SIZE = bucketSize;
+    public ExtendibleHashIndex(RandomAccessFile hashBucketRAF, RandomAccessFile dbRAF, String mode) {
         this.hashBucketRAF = hashBucketRAF;
         this.dbRAF = dbRAF;
+        fillFieldLengths();
         if(mode.equals("w")){ // we're writing a hash bucket file so it's cool to create a new directory
             directory = new Directory(bucketSize);
             initBuckets();
         } else{ // we gotta read the directory from the hash bucket file since we're in read mode
             readDirectory();
         }
-        newBucketAddress = BUCKET_SIZE*10;
+        newBucketAddress = bucketSize * 10;
     }
+
+    /**
+     * getProjectSize: Return size of each project in bytes
+     * Pre-conditions: fillFieldLengths has been called
+     * Post-conditions: N/A
+     * @return project size in bytes
+     */
+    public int getProjectSize(){
+        return projectSize;
+    }
+
+    /**
+     * getBucketSize: Return size of each bucket in bytes
+     * Pre-conditions: fillFieldLengths has been called
+     * Post-conditions: N/A
+     * @return size of bucket in bytes
+     */
+    public int getBucketSize(){
+        return bucketSize;
+    }
+
+    /**
+     * getNumProjects: Return num projects in dbRAF
+     * Pre-conditions: fillFieldLengths has been called
+     * Post-conditions: N/A
+     * @return num projects in db file
+     */
+    public int getNumProjects(){
+        return numProjects;
+    }
+
+	/**
+	 * readProjectValues: given a database file and a bye location, reads the Project into an array of Strings
+	 * representing the values of the project.
+	 * Pre-conditions: fillFieldLengths has been called. inputRAF is a binary file representing the db file of projects and
+	 * is in read mode
+	 * Post-conditions: file-pointer offset for inputRAF is set to location
+	 * @param location the byte # where the project starts
+	 * @return Array of strings representing the fields in a project
+	 * @throws IOException if inputRAF.seek or .read fails
+	 */
+	public String[] readProjectValues(long location) throws IOException{
+		String[] projectFields = new String[STRING_FIELDS + INT_FIELDS]; // project represented as an arr of strings
+		byte[] project = new byte[projectSize]; // project represented as an array of bytes
+		dbRAF.seek(location);
+		dbRAF.read(project);
+		int i; //index to be used in looping
+		int startIndex = 0;
+		for(i = 0; i < STRING_FIELDS; i++){
+			projectFields[i] = Prog2.bytesToString(Arrays.copyOfRange(project, startIndex, startIndex + stringFieldLengths[i]));
+			startIndex += stringFieldLengths[i];
+		}
+		for(; i < STRING_FIELDS + INT_FIELDS; i++){
+			projectFields[i] = "" + Prog2.bytesToInt(Arrays.copyOfRange(project, startIndex, startIndex + Integer.BYTES));
+			startIndex += Integer.BYTES;
+		}
+		return projectFields;
+	}
+	
+	/**
+	 * fillFieldLengths: fills stringFieldLengths array with lengths of each of the string fields of
+	 * the projects in inputRAF, as well as projectSize, bucketSize, entrySize and numProjects
+	 * Pre-conditions: inputRAF is an existing, properly formatted binary file
+	 * Post-conditions: stringFieldLengths, projectSize, numProjects are filled with values
+	 * from end of file inputRAF
+	 * Note: Copied from Jacob Egestad's Program 1
+	 * @return void
+	 */
+	private void fillFieldLengths(){
+		byte[] lengths = new byte[STRING_FIELDS * Integer.BYTES]; // 9 lengths in a binary string
+		long startOfLengths = -1; // to be used to mark the beginning of the string field lengths
+		try {
+			startOfLengths = dbRAF.length() - (STRING_FIELDS * Integer.BYTES);
+			dbRAF.seek(startOfLengths);
+		    dbRAF.read(lengths);
+			dbRAF.seek(0);
+		} catch (Exception e) {
+			Prog2.printErrAndExit("Error reading input file");
+		}
+		projectSize = INT_FIELDS_LENGTHS; // 4*4 to start with
+		for(int i = 0; i < STRING_FIELDS; i++){
+			int j = i  * Integer.BYTES; // the index of the byte to be gotten from lengths to fill toInt
+			byte[] toInt = new byte[Integer.BYTES]; // array representing int value of field i
+			for(int k = 0; k < Integer.BYTES; k++){
+				toInt[k] = lengths[j++];
+			}
+			stringFieldLengths[i] = Prog2.bytesToInt(toInt);
+			projectSize += stringFieldLengths[i];
+			//System.out.println("Field " + i + " length: " + stringFieldLengths[i]);
+		}
+		numProjects = (int) (startOfLengths / projectSize);
+		entrySize = stringFieldLengths[0] + Long.BYTES;
+		bucketSize = entrySize * ENTRIES_PER_BUCKET;
+	}
 
     /**
      * printIndexInfo: prints the final global depth of the directory, the number of unique bucket pointer values,
@@ -66,7 +169,7 @@ public class ExtendibleHashIndex {
         int totalBuckets = directory.getTotalBuckets();
         System.out.printf("Number of unique bucket pointers: %d\n", uniqueBuckets);
         System.out.printf("Number of buckets in HashBucket.bin: %d\n", totalBuckets);
-        System.out.printf("Average bucket capacity: %f\n", uniqueBuckets / directory.getNumEntries());
+        System.out.printf("Average bucket capacity: %f\n", uniqueBuckets * 1.0 / directory.getNumEntries());
     }
 
     /**
@@ -145,7 +248,7 @@ public class ExtendibleHashIndex {
         for (int i = 0; i < 10; i++) {
             HashBucket bucket = new HashBucket(Integer.toString(i));
             // add location to directory (what is the size of a bucket?)
-            directory.addAddress(Integer.toString(i), BUCKET_SIZE * i); // maybe edit this?
+            directory.addAddress(Integer.toString(i), bucketSize * i); // maybe edit this?
             // write to file
         }
     }
@@ -184,10 +287,9 @@ public class ExtendibleHashIndex {
             int matches = 0;
             for(long address: addresses){
                 int numEntries = directory.getNumEntriesInBucketByAddress(address);
-                int entrySize = BUCKET_SIZE / 50;
                 for(int i = 0; i < numEntries; i++){
-                    long dbAddr = getAddressFromEntry(address, entrySize);
-                    String[] values = Prog2.readProjectValues(dbRAF, dbAddr);
+                    long dbAddr = getAddressFromEntry(address);
+                    String[] values = readProjectValues(dbAddr);
                     if(!values[0].strip().endsWith(suffix)){ // just making sure
                         address += entrySize;
                         continue;
@@ -197,14 +299,14 @@ public class ExtendibleHashIndex {
                     address += entrySize;
                 }
             }
-            System.out.printf("%d record(s) found with suffix '%s'", matches, suffix);
+            System.out.printf("%d record(s) found with suffix '%s'\n", matches, suffix);
         } catch(IOException ioException){
             ioException.printStackTrace();
             Prog2.printErrAndExit("Error getting address from entry at in HashBucket File. Or error reading from DB file.");
         }
     }
 
-    public long getAddressFromEntry(long address, int entrySize) throws IOException{
+    public long getAddressFromEntry(long address) throws IOException{
         byte[] entry = new byte[entrySize];
         hashBucketRAF.seek(address);
         hashBucketRAF.read(entry);
@@ -233,7 +335,6 @@ public class ExtendibleHashIndex {
         // gotta get entries from bucket file somehow
         String prefix = directory.getPrefixFromAddress(bucketAddr);
         HashBucket fileBucket = new HashBucket(prefix);
-        int entrySize = BUCKET_SIZE / 50;
         int startOfAddr = entrySize - Long.BYTES;
         int numEntries = directory.getNumEntriesInBucketByAddress(bucketAddr);
         try{
@@ -284,7 +385,7 @@ public class ExtendibleHashIndex {
             HashBucket[] newBuckets = new HashBucket[10];
             try{
                 hashBucketRAF.seek(hashBucketRAF.length());
-                hashBucketRAF.write(new byte[BUCKET_SIZE*10]);
+                hashBucketRAF.write(new byte[bucketSize*10]);
             } catch(IOException ioException){
                 ioException.printStackTrace();
                 Prog2.printErrAndExit("Couldn't allocate space to HashBucket.bin");
@@ -293,7 +394,7 @@ public class ExtendibleHashIndex {
                 newBuckets[i] = new HashBucket(currPrefix+i);
                 // update directory to point at new buckets
                 directory.changeAddress(currPrefix+i, newBucketAddress);
-                newBucketAddress += BUCKET_SIZE;
+                newBucketAddress += bucketSize;
             }
             // copy entries from old bucket into new buckets
             HashEntry[] entries = currBucket.getEntries();
@@ -347,7 +448,7 @@ public class ExtendibleHashIndex {
     private void writeEntry(String projID, long dbAddr, long bucketAddr){
         int numEntriesInBucket = directory.getNumEntriesInBucketByAddress(bucketAddr);
         directory.incrementNumEntriesAtAddress(bucketAddr);
-        long insertAddr = bucketAddr + (numEntriesInBucket * BUCKET_SIZE / 50);
+        long insertAddr = bucketAddr + (numEntriesInBucket * bucketSize / 50);
         byte[] writeBytes = new byte[projID.length() + Long.BYTES];
         for(int i = 0; i < projID.length(); i++){
             writeBytes[i] = (byte) projID.charAt(i);
