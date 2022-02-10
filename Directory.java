@@ -29,6 +29,7 @@ public class Directory implements Serializable{
     // attributes
     HashMap<String, Long> directory;
     HashMap<Long, Integer> entries; // keep track of number of entries per bucket
+    HashMap<String, String> keyMap; // key is directory prefix, val is hashbucket prefix
     int prefixSize;
     private int numEntries;
     final int BUCKET_SIZE;
@@ -39,10 +40,12 @@ public class Directory implements Serializable{
         totalBuckets = 10;
         directory = new HashMap<String, Long>();
         entries = new HashMap<Long, Integer>();
+        keyMap = new HashMap<String, String>();
         long pos = 0; // byte position representing start of each bucket
         for(int i = 0; i < totalBuckets; i++){
             entries.put(pos, 0);
             directory.put("" + i, pos);
+            keyMap.put("" + i, "" + i);
             pos += bucketSize;
         }
         BUCKET_SIZE = bucketSize;
@@ -73,13 +76,13 @@ public class Directory implements Serializable{
 
     /**
      * getPrefixFromAddress: Given a bucket address, return the corresponding prefix.
-     * @param addreses the address of the bucket to get the prefix from
+     * @param addresses the address of the bucket to get the prefix from
      * @return the prefix corresponding to the bucket address, null if not found
      */
-    public String getPrefixFromAddress(long addreses){
+    public String getPrefixFromAddress(long addresses){
         for(String prefix: directory.keySet()){
-            if(directory.get(prefix) == addreses){
-                return prefix;
+            if(directory.get(prefix) == addresses){
+                return keyMap.get(prefix);
             }
         }
         return null;
@@ -169,6 +172,7 @@ public class Directory implements Serializable{
      */
     public void addAddress(String prefix, long addr) {
         directory.put(prefix, addr);
+        keyMap.put(prefix, prefix); // is this correct?
         entries.put(addr, 0);
     }
 
@@ -211,17 +215,33 @@ public class Directory implements Serializable{
      * Postconditions: N/A
      * @return void
      */
-    public void grow() {
+    public void grow(String currPrefix) {
         prefixSize++;
         Set<String> prevKeys = directory.keySet();
         // get all key values then loop 10 times on each adding 0-9 to the end of each for new keys
         HashMap<String, Long> newDirectory = new HashMap<String, Long>();
         for (String key : prevKeys) {
             for (int i = 0; i < 10; i++) {
+                if (key.equals(currPrefix)) {
+                    keyMap.put(key+i, key+i);
+                } else {
+                    keyMap.put(key+i, key);                }
                 newDirectory.put(key+i, directory.get(key));
             }
+            keyMap.remove(key);
         }
         directory = newDirectory;
         //System.out.println(newDirectory.keySet());
+    }
+
+    public void updateKeyMap(String currPrefix) {
+        Set<String> keys = directory.keySet();
+        for (String key : keys) {
+            for (int i = 0; i < 10; i++) {
+                if (key.equals(currPrefix+i)) {
+                    keyMap.replace(key, keyMap.get(key)+i);
+                }
+            }
+        }
     }
 }

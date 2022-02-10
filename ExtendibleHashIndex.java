@@ -374,13 +374,16 @@ public class ExtendibleHashIndex {
         }
         // read appropriate bucket into memory
         HashBucket currBucket = readBucket(bucketAddr); // read from hashbuckets file at bucketAddr
+        System.out.printf(" currBucket prefix: %s, numEntries: %d\n", currBucket.getPrefix(), currBucket.getNumEntries());
         // add entry to bucket or add buckets if full (also expand directory if necessary)
         if (currBucket.isFull()) {
             directory.setTotalBuckets(directory.getTotalBuckets() + 10);
             String currPrefix = currBucket.getPrefix();
             // expand directory if necessary
             if (currPrefix.length() == directory.getPrefixSize()) {
-                directory.grow();
+                directory.grow(currPrefix);
+            } else {
+                directory.updateKeyMap(currPrefix);
             }
             // split bucket into 10 new buckets
             HashBucket[] newBuckets = new HashBucket[10];
